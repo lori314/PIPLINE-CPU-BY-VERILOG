@@ -1,0 +1,3 @@
+xst -intstyle ise -ifn "/home/co-eda/single_cpu/ALU.xst" -ofn "/home/co-eda/single_cpu/ALU.syr" 
+xst -intstyle ise -ifn "/home/co-eda/single_cpu/ALU.xst" -ofn "/home/co-eda/single_cpu/ALU.syr" 
+xst -intstyle ise -ifn "/home/co-eda/single_cpu/ALU.xst" -ofn "/home/co-eda/single_cpu/ALU.syr" 

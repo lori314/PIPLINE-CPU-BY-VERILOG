@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="tb" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="26" />
+   <wvobject fp_name="/tb/macroscopic_pc" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">macroscopic_pc[31:0]</obj_property>
+      <obj_property name="ObjectShortName">macroscopic_pc[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/i_inst_addr" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">i_inst_addr[31:0]</obj_property>
+      <obj_property name="ObjectShortName">i_inst_addr[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/i_inst_rdata" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">i_inst_rdata[31:0]</obj_property>
+      <obj_property name="ObjectShortName">i_inst_rdata[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/clk" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clk</obj_property>
+      <obj_property name="ObjectShortName">clk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/reset" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">reset</obj_property>
+      <obj_property name="ObjectShortName">reset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/interrupt" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">interrupt</obj_property>
+      <obj_property name="ObjectShortName">interrupt</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/i" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">i[31:0]</obj_property>
+      <obj_property name="ObjectShortName">i[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/fixed_addr" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">fixed_addr[31:0]</obj_property>
+      <obj_property name="ObjectShortName">fixed_addr[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/fixed_wdata" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">fixed_wdata[31:0]</obj_property>
+      <obj_property name="ObjectShortName">fixed_wdata[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/target_pc" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">target_pc[31:0]</obj_property>
+      <obj_property name="ObjectShortName">target_pc[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/count" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">count[31:0]</obj_property>
+      <obj_property name="ObjectShortName">count[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/uut/cpu/cp0/HWInt" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">HWInt[5:0]</obj_property>
+      <obj_property name="ObjectShortName">HWInt[5:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/uut/cpu/cp0/SR" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">SR[31:0]</obj_property>
+      <obj_property name="ObjectShortName">SR[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/uut/cpu/cp0/Cause" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">Cause[31:0]</obj_property>
+      <obj_property name="ObjectShortName">Cause[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/uut/cpu/cp0/EPC" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">EPC[31:0]</obj_property>
+      <obj_property name="ObjectShortName">EPC[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/uut/cpu/cp0/VPC" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">VPC[31:0]</obj_property>
+      <obj_property name="ObjectShortName">VPC[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/uut/cpu/cp0/BDIn" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">BDIn</obj_property>
+      <obj_property name="ObjectShortName">BDIn</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/uut/cpu/cp0/Req" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">Req</obj_property>
+      <obj_property name="ObjectShortName">Req</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/uut/cpu/cp0/real_ExcCode" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">real_ExcCode[4:0]</obj_property>
+      <obj_property name="ObjectShortName">real_ExcCode[4:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/uut/cpu/ifu/pre_pc" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">pre_pc[31:0]</obj_property>
+      <obj_property name="ObjectShortName">pre_pc[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/uut/cpu/hazard_control/Stall" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">Stall</obj_property>
+      <obj_property name="ObjectShortName">Stall</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/uut/cpu/hazard_control/Busy" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">Busy</obj_property>
+      <obj_property name="ObjectShortName">Busy</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/uut/cpu/hazard_control/StartE" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">StartE</obj_property>
+      <obj_property name="ObjectShortName">StartE</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/uut/cpu/hazard_control/start" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">start</obj_property>
+      <obj_property name="ObjectShortName">start</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/uut/cpu/mul/count" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">count[3:0]</obj_property>
+      <obj_property name="ObjectShortName">count[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb/uut/cpu/mul/op" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">op[3:0]</obj_property>
+      <obj_property name="ObjectShortName">op[3:0]</obj_property>
+   </wvobject>
+</wave_config>

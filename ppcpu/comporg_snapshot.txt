@@ -1,0 +1,5930 @@
+================================================================================
+### 文件: ALU.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date:    16:29:57 10/29/2024 
+// Design Name: 
+// Module Name:    ALU 
+// Project Name: 
+// Target Devices: 
+// Tool versions: 
+// Description: 
+//
+// Dependencies: 
+//
+// Revision: 
+// Revision 0.01 - File Created
+// Additional Comments: 
+//
+//////////////////////////////////////////////////////////////////////////////////
+`define ADD 3'b000
+`define SUB 3'b001
+`define OR 3'b010
+`define AND 3'b011
+`define SLT 3'b100
+`define SLTU 3'b101
+`define ADDO 3'b110
+
+module ALU(
+    input [31:0] rs,
+    input [31:0] rt,
+    input [2:0] ALUop,
+	 input [4:0] ExcCodeA,
+	 input MemWriteE,
+	 input MemtoRegE,
+    output reg[31:0] result,
+	 output reg[4:0] ExcCodeE
+    );
+
+
+always @(*) begin
+case(ALUop)
+`ADD:begin
+result=rs+rt;
+ExcCodeE=ExcCodeA;
+end
+`ADDO:begin
+result=rs+rt;
+if(rs[31]==rt[31]&&rs[31]!=result[31]) begin
+	if(MemWriteE) ExcCodeE=5;
+	else if(MemtoRegE) ExcCodeE=4;
+	else ExcCodeE=12;
+end
+else ExcCodeE=ExcCodeA;
+end
+`SUB:begin
+result=rs-rt;
+if(rs[31]!=rt[31]&&rs[31]!=result[31]) begin
+	if(MemWriteE) ExcCodeE=5;
+	else if(MemtoRegE) ExcCodeE=4;
+	else ExcCodeE=12;
+end
+else ExcCodeE=ExcCodeA;
+end
+`OR:begin
+result=rs|rt;
+ExcCodeE=ExcCodeA;
+end
+`AND:begin
+result=rs&rt;
+ExcCodeE=ExcCodeA;
+end
+`SLT:begin
+result=($signed(rs)<$signed(rt))?1:0;
+ExcCodeE=ExcCodeA;
+end
+`SLTU:begin
+result=({0,rs[31:0]}<{0,rt[31:0]})?1:0;
+ExcCodeE=ExcCodeA;
+end
+default:begin
+result=0;
+ExcCodeE=ExcCodeA;
+end
+endcase
+end
+endmodule
+
+
+================================================================================
+### 文件: ALU_tb.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+
+////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer:
+//
+// Create Date:   16:49:11 10/29/2024
+// Design Name:   ALU
+// Module Name:   /home/co-eda/single_cpu/ALU_tb.v
+// Project Name:  single_cpu
+// Target Device:  
+// Tool versions:  
+// Description: 
+//
+// Verilog Test Fixture created by ISE for module: ALU
+//
+// Dependencies:
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+////////////////////////////////////////////////////////////////////////////////
+
+module ALU_tb;
+
+	// Inputs
+	reg [31:0] rs;
+	reg [31:0] rt;
+	reg [2:0] ALUop;
+	reg [5:0] ExcCodeA;
+
+	// Outputs
+	wire [31:0] result;
+	wire [5:0] ExcCodeE;
+
+	// Instantiate the Unit Under Test (UUT)
+	ALU uut (
+		.rs(rs), 
+		.rt(rt), 
+		.ALUop(ALUop), 
+		.result(result),
+		.ExcCodeA(ExcCodeA),
+		.ExcCodeE(ExcCodeE)
+	);
+
+	initial begin
+		// Initialize Inputs
+		rs = 0;
+		rt = 0;
+		ALUop = 0;
+
+		// Wait 100 ns for global reset to finish
+		#100;
+      rs = 32'h0000_457c;
+		rt = {2'b11,28'hfffffbb,2'b00};
+		ALUop = 0;
+		ExcCodeA = 0;
+		// Add stimulus here
+		#100 ALUop=1;
+		#100
+		ALUop = 2;
+		rs = -5;
+		rt = 2;
+	end
+      
+endmodule
+
+
+
+================================================================================
+### 文件: BE.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date:    19:34:22 11/14/2024 
+// Design Name: 
+// Module Name:    BE 
+// Project Name: 
+// Target Devices: 
+// Tool versions: 
+// Description: 
+//
+// Dependencies: 
+//
+// Revision: 
+// Revision 0.01 - File Created
+// Additional Comments: 
+//
+//////////////////////////////////////////////////////////////////////////////////
+module BE(
+    output reg [3:0] m_data_byteen,
+    input [31:0] Address,
+    input [2:0] MemOpE,
+	 input MemWriteE,
+	 input [31:0] Mem_data,
+	 output reg [31:0] fixed_Mem_data,
+	 input Req
+    );
+
+always @(*) begin
+if(Req) begin
+m_data_byteen=0;
+fixed_Mem_data=0;
+end
+else begin
+if(MemWriteE) begin
+case(MemOpE)
+0:begin
+m_data_byteen=4'b1111;
+fixed_Mem_data=Mem_data;
+end
+1:begin
+if(Address[1]===0) begin
+m_data_byteen=4'b0011;
+fixed_Mem_data=Mem_data;
+end
+else if(Address[1]===1) begin
+m_data_byteen=4'b1100;
+fixed_Mem_data={Mem_data[15:0],16'h0000};
+end
+else begin 
+m_data_byteen=4'b0000;
+fixed_Mem_data=Mem_data;
+end
+end
+2:begin 
+if(Address[1:0]===2'b00) begin
+m_data_byteen=4'b0001;
+fixed_Mem_data=Mem_data;
+end
+else if(Address[1:0]===2'b01) begin
+m_data_byteen=4'b0010;
+fixed_Mem_data={8'b0,8'b0,Mem_data[7:0],8'b0};
+end
+else if(Address[1:0]===2'b10) begin
+m_data_byteen=4'b0100;
+fixed_Mem_data={8'b0,Mem_data[7:0],8'b0,8'b0};
+end
+else if(Address[1:0]===2'b11) begin
+m_data_byteen=4'b1000;
+fixed_Mem_data={Mem_data[7:0],24'h000000};
+end
+else begin
+m_data_byteen=4'b0000;
+fixed_Mem_data=Mem_data;
+end
+end
+default begin
+m_data_byteen=4'b0000;
+fixed_Mem_data=Mem_data;
+end
+endcase
+end
+else m_data_byteen=0;
+end
+end
+endmodule
+
+
+================================================================================
+### 文件: BE_tb.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+
+////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer:
+//
+// Create Date:   19:49:13 11/14/2024
+// Design Name:   BE
+// Module Name:   C:/Users/lenovo/Desktop/codes/verilog/ppcpu/BE_tb.v
+// Project Name:  pipeline_cpu
+// Target Device:  
+// Tool versions:  
+// Description: 
+//
+// Verilog Test Fixture created by ISE for module: BE
+//
+// Dependencies:
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+////////////////////////////////////////////////////////////////////////////////
+
+module BE_tb;
+
+	// Inputs
+	reg [31:0] Address;
+	reg [2:0] MemOpE;
+	reg MemWriteE;
+	reg [31:0] Mem_data;
+
+	// Outputs
+	wire [3:0] m_data_byteen;
+	wire [31:0] fixed_Mem_data;
+
+	// Instantiate the Unit Under Test (UUT)
+	BE uut (
+		.m_data_byteen(m_data_byteen), 
+		.Address(Address), 
+		.MemOpE(MemOpE), 
+		.MemWriteE(MemWriteE),
+		.Mem_data(Mem_data),
+		.fixed_Mem_data(fixed_Mem_data)
+	);
+
+	initial begin
+		// Initialize Inputs
+		Address = 0;
+		MemOpE = 0;
+		MemWriteE = 0;
+
+		// Wait 100 ns for global reset to finish
+		#100;
+      Address = 3;
+		MemOpE = 2;
+		MemWriteE=1;
+		Mem_data=32'h0000007b;
+		// Add stimulus here
+
+	end
+      
+endmodule
+
+
+
+================================================================================
+### 文件: Bridge.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date:    11:21:05 11/29/2024 
+// Design Name: 
+// Module Name:    Bridge 
+// Project Name: 
+// Target Devices: 
+// Tool versions: 
+// Description: 
+//
+// Dependencies: 
+//
+// Revision: 
+// Revision 0.01 - File Created
+// Additional Comments: 
+//
+//////////////////////////////////////////////////////////////////////////////////
+module Bridge(
+    // CPU�ӿ�
+    input wire [31:0] cpu_addr,      // CPU���ʵ�ַ
+    input wire [31:0] cpu_writedata, // CPUд����
+    output reg [31:0] cpu_readdata,  // CPU������
+    input wire cpu_we,              // CPUдʹ��
+    input wire [3:0] cpu_be,         // CPU�ֽ�ʹ��
+
+    // �ⲿ�豸�ӿ�
+    output reg [31:0] mem_addr,      // �ڴ��ַ
+    output reg [31:0] mem_writedata, // �ڴ�д����
+    input wire [31:0] mem_readdata,  // �ڴ������
+    output reg [3:0] mem_be,        // �ڴ��ֽ�ʹ��
+
+    output reg [31:2] timer0_addr,  // ��ʱ��0��ַ
+    output reg [31:0] timer0_writedata, // ��ʱ��0д����
+    input wire [31:0] timer0_readdata, // ��ʱ��0������
+    output reg timer0_we,           // ��ʱ��0дʹ��
+
+    output reg [31:2] timer1_addr,  // ��ʱ��1��ַ
+    output reg [31:0] timer1_writedata, // ��ʱ��1д����
+    input wire [31:0] timer1_readdata, // ��ʱ��1������
+    output reg timer1_we,           // ��ʱ��1дʹ��
+
+    output reg [31:0] int_addr,     // �жϷ�������ַ
+    output reg [31:0] int_writedata, // �жϷ�����д����
+    input wire [31:0] int_readdata,  // �жϷ�����������
+    output reg [3:0] int_be         // �жϷ������ֽ�ʹ��
+);
+
+// ��ַ��Χ����
+parameter DATA_MEM_RANGE = 32'h0000_0000;
+parameter DATA_MEM_SIZE = 32'h3000; // �������ݴ洢����СΪ4KB
+parameter TIMER0_RANGE = 32'h0000_7F00;
+parameter TIMER0_SIZE = 32'h0B; // �����ʱ��0��СΪ16B
+parameter TIMER1_RANGE = 32'h0000_7F10;
+parameter TIMER1_SIZE = 32'h0B; // �����ʱ��1��СΪ16B
+parameter INT_RANGE = 32'h0000_7F20;
+parameter INT_SIZE = 32'h4; // �����жϷ�������СΪ4B
+
+// ��ַ�����߼�
+reg [31:0] temp0;
+reg [31:0] temp1;
+
+always @(*) begin
+        // ���ݴ洢������
+        if (cpu_addr >= DATA_MEM_RANGE && cpu_addr < DATA_MEM_RANGE + DATA_MEM_SIZE) begin
+            mem_addr = cpu_addr;
+            mem_writedata = cpu_writedata;
+            cpu_readdata = mem_readdata;
+            mem_be = cpu_be;
+        end
+		  else begin
+				mem_addr = 0;
+            mem_writedata = 0;
+            mem_be = 0;
+		  end
+
+        // ��ʱ��0����
+        if (cpu_addr >= TIMER0_RANGE && cpu_addr < TIMER0_RANGE + TIMER0_SIZE) begin
+            temp0 = cpu_addr - TIMER0_RANGE;
+				timer0_addr=temp0[31:2];
+            timer0_writedata = cpu_writedata;
+            timer0_we = cpu_we;
+            cpu_readdata = timer0_readdata;
+        end
+		  else begin
+				temp0 = 0;
+				timer0_addr=0;
+            timer0_writedata = 0;
+            timer0_we = 0;
+		  end
+        // ��ʱ��1����
+        if (cpu_addr >= TIMER1_RANGE && cpu_addr < TIMER1_RANGE + TIMER1_SIZE) begin
+            temp1 = cpu_addr - TIMER1_RANGE;
+				timer1_addr=temp1[31:2];
+            timer1_writedata = cpu_writedata;
+            timer1_we = cpu_we;
+            cpu_readdata = timer1_readdata;
+        end
+		  else begin
+				temp1 = 0;
+				timer1_addr=0;
+            timer1_writedata = 0;
+            timer1_we = 0;
+		  end		  
+        // �жϷ���������
+        if (cpu_addr >= INT_RANGE && cpu_addr < INT_RANGE + INT_SIZE) begin
+            int_addr = cpu_addr;
+            int_writedata = cpu_writedata;
+            cpu_readdata = int_readdata;
+            int_be = (cpu_we==1)? 4'b0001:0;
+        end
+		  else begin
+				int_addr = 0;
+            int_writedata = 0;
+            int_be = 0;
+        end
+    end
+
+
+endmodule
+
+
+================================================================================
+### 文件: Bridge_tb.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+
+////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer:
+//
+// Create Date:   12:15:20 11/29/2024
+// Design Name:   Bridge
+// Module Name:   C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/Bridge_tb.v
+// Project Name:  pipeline_cpu
+// Target Device:  
+// Tool versions:  
+// Description: 
+//
+// Verilog Test Fixture created by ISE for module: Bridge
+//
+// Dependencies:
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+////////////////////////////////////////////////////////////////////////////////
+
+module Bridge_tb;
+
+	// Inputs
+	reg clk;
+	reg reset;
+	reg [31:0] cpu_addr;
+	reg [31:0] cpu_writedata;
+	reg cpu_we;
+	reg [3:0] cpu_be;
+	reg [31:0] mem_readdata;
+	reg [31:0] timer0_readdata;
+	reg [31:0] timer1_readdata;
+	reg [31:0] int_readdata;
+
+	// Outputs
+	wire [31:0] cpu_readdata;
+	wire [31:0] mem_addr;
+	wire [31:0] mem_writedata;
+	wire mem_we;
+	wire [3:0] mem_be;
+	wire [31:0] timer0_addr;
+	wire [31:0] timer0_writedata;
+	wire timer0_we;
+	wire [3:0] timer0_be;
+	wire [31:0] timer1_addr;
+	wire [31:0] timer1_writedata;
+	wire timer1_we;
+	wire [3:0] timer1_be;
+	wire [31:0] int_addr;
+	wire [31:0] int_writedata;
+	wire int_we;
+	wire [3:0] int_be;
+
+	// Instantiate the Unit Under Test (UUT)
+	Bridge uut (
+		.clk(clk), 
+		.reset(reset), 
+		.cpu_addr(cpu_addr), 
+		.cpu_writedata(cpu_writedata), 
+		.cpu_readdata(cpu_readdata), 
+		.cpu_we(cpu_we), 
+		.cpu_be(cpu_be), 
+		.mem_addr(mem_addr), 
+		.mem_writedata(mem_writedata), 
+		.mem_readdata(mem_readdata), 
+		.mem_we(mem_we), 
+		.mem_be(mem_be), 
+		.timer0_addr(timer0_addr), 
+		.timer0_writedata(timer0_writedata), 
+		.timer0_readdata(timer0_readdata), 
+		.timer0_we(timer0_we), 
+		.timer0_be(timer0_be), 
+		.timer1_addr(timer1_addr), 
+		.timer1_writedata(timer1_writedata), 
+		.timer1_readdata(timer1_readdata), 
+		.timer1_we(timer1_we), 
+		.timer1_be(timer1_be), 
+		.int_addr(int_addr), 
+		.int_writedata(int_writedata), 
+		.int_readdata(int_readdata), 
+		.int_we(int_we), 
+		.int_be(int_be)
+	);
+
+	initial begin
+		// Initialize Inputs
+		clk = 0;
+		reset = 0;
+		cpu_addr = 0;
+		cpu_writedata = 0;
+		cpu_we = 0;
+		cpu_be = 0;
+		mem_readdata = 0;
+		timer0_readdata = 0;
+		timer1_readdata = 0;
+		int_readdata = 0;
+
+		// Wait 100 ns for global reset to finish
+		#100;
+        
+		// Add stimulus here
+
+	end
+      
+endmodule
+
+
+
+================================================================================
+### 文件: Controller.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date:    20:23:25 10/30/2024 
+// Design Name: 
+// Module Name:    Controller 
+// Project Name: 
+// Target Devices: 
+// Tool versions: 
+// Description: 
+//
+// Dependencies: 
+//
+// Revision: 
+// Revision 0.01 - File Created
+// Additional Comments: 
+//
+//////////////////////////////////////////////////////////////////////////////////
+`define cal 6'b000000
+`define c0 6'b010000
+`define ori 6'b001101
+`define sw 6'b101011
+`define lw 6'b100011
+`define beq 6'b000100
+`define lui 6'b001111
+`define jal 6'b000011
+`define addi 6'b001000
+`define andi 6'b001100
+`define bne 6'b000101
+`define sh 6'b101001
+`define sb 6'b101000
+`define lh 6'b100001
+`define lb 6'b100000
+
+`define add 6'b100000
+`define sub 6'b100010
+`define jr  6'b001000
+`define AND 6'b100100
+`define OR  6'b100101
+`define slt 6'b101010
+`define sltu 6'b101011
+`define mult 6'b011000 
+`define div 6'b011010
+`define mfhi 6'b010000
+`define mflo 6'b010010
+`define mthi 6'b010001
+`define mtlo 6'b010011
+`define multu 6'b011001
+`define divu 6'b011011
+`define syscall 6'b001100
+`define nop 6'b000000
+
+`define mtc0 5'b00100
+`define mfc0 5'b00000
+`define eret 6'b011000
+
+module Controller(
+    input [31:0] instr,
+	 input [4:0] ExcCodeF,
+    output reg MemWrite,
+    output reg RegWrite,
+    output reg ExtOp,
+    output reg ALUSrc,
+    output reg RegDst,
+    output reg MemtoReg,
+    output reg[2:0] nPC_sel,
+    output reg[2:0] ALUctr,
+    output reg ExtHigh,
+	 output reg JAL_PC,
+	 output reg[2:0] T_use_rs,
+	 output reg[2:0] T_use_rt,
+	 output reg[2:0] T_new,
+	 output reg[3:0] Multop,
+	 output reg Start,
+	 output reg[2:0] MemOp,
+	 output reg[4:0] ExcCodeD,
+	 output reg C0Write,
+	 output reg ID_EXLClr
+    );
+
+reg[5:0] special;
+reg[5:0] func;
+reg[4:0] COP;
+
+initial begin
+special=0;
+func=0;
+COP=0;
+end
+
+always @(*) begin
+special=instr[31:26];
+func=instr[5:0];
+COP=instr[25:21];
+case(special)
+`ori:begin
+MemWrite=0;
+RegWrite=1;
+ExtOp=0;
+ALUSrc=1;
+RegDst=0;
+MemtoReg=0;
+nPC_sel=0;
+ALUctr=2;
+ExtHigh=0;
+JAL_PC=0;
+T_use_rs=1;
+T_use_rt=1;
+T_new=2;
+Multop=0;
+Start=0;
+MemOp=0;
+ExcCodeD=ExcCodeF;
+C0Write=0;
+ID_EXLClr=0;
+end
+`lw:begin
+MemWrite=0;
+RegWrite=1;
+ExtOp=1;
+ALUSrc=1;
+RegDst=0;
+MemtoReg=1;
+nPC_sel=0;
+ALUctr=6;
+ExtHigh=0;
+JAL_PC=0;
+T_use_rs=1;
+T_use_rt=3;
+T_new=3;
+Multop=0;
+Start=0;
+MemOp=3;
+ExcCodeD=ExcCodeF;
+C0Write=0;
+ID_EXLClr=0;
+end
+`lh:begin
+MemWrite=0;
+RegWrite=1;
+ExtOp=1;
+ALUSrc=1;
+RegDst=0;
+MemtoReg=1;
+nPC_sel=0;
+ALUctr=6;
+ExtHigh=0;
+JAL_PC=0;
+T_use_rs=1;
+T_use_rt=3;
+T_new=3;
+Multop=0;
+Start=0;
+MemOp=4;
+ExcCodeD=ExcCodeF;
+C0Write=0;
+ID_EXLClr=0;
+end
+`lb:begin
+MemWrite=0;
+RegWrite=1;
+ExtOp=1;
+ALUSrc=1;
+RegDst=0;
+MemtoReg=1;
+nPC_sel=0;
+ALUctr=6;
+ExtHigh=0;
+JAL_PC=0;
+T_use_rs=1;
+T_use_rt=3;
+T_new=3;
+Multop=0;
+Start=0;
+MemOp=5;
+ExcCodeD=ExcCodeF;
+C0Write=0;
+ID_EXLClr=0;
+end
+`sw:begin
+MemWrite=1;
+RegWrite=0;
+ExtOp=1;
+ALUSrc=1;
+RegDst=0;
+MemtoReg=0;
+nPC_sel=0;
+ALUctr=6;
+ExtHigh=0;
+JAL_PC=0;
+T_use_rs=1;
+T_use_rt=1;
+T_new=0;
+Multop=0;
+Start=0;
+MemOp=0;
+ExcCodeD=ExcCodeF;
+C0Write=0;
+ID_EXLClr=0;
+end
+`sh:begin
+MemWrite=1;
+RegWrite=0;
+ExtOp=1;
+ALUSrc=1;
+RegDst=0;
+MemtoReg=0;
+nPC_sel=0;
+ALUctr=6;
+ExtHigh=0;
+JAL_PC=0;
+T_use_rs=1;
+T_use_rt=1;
+T_new=0;
+Multop=0;
+Start=0;
+MemOp=1;
+ExcCodeD=ExcCodeF;
+C0Write=0;
+ID_EXLClr=0;
+end
+`sb:begin
+MemWrite=1;
+RegWrite=0;
+ExtOp=1;
+ALUSrc=1;
+RegDst=0;
+MemtoReg=0;
+nPC_sel=0;
+ALUctr=6;
+ExtHigh=0;
+JAL_PC=0;
+T_use_rs=1;
+T_use_rt=1;
+T_new=0;
+Multop=0;
+Start=0;
+MemOp=2;
+ExcCodeD=ExcCodeF;
+C0Write=0;
+ID_EXLClr=0;
+end
+`beq:begin
+MemWrite=0;
+RegWrite=0;
+ExtOp=0;
+ALUSrc=0;
+RegDst=0;
+MemtoReg=0;
+nPC_sel=1;
+ALUctr=0;
+ExtHigh=0;
+JAL_PC=0;
+T_use_rs=0;
+T_use_rt=0;
+T_new=0;
+Multop=0;
+Start=0;
+MemOp=0;
+ExcCodeD=ExcCodeF;
+C0Write=0;
+ID_EXLClr=0;
+end
+`bne:begin
+MemWrite=0;
+RegWrite=0;
+ExtOp=0;
+ALUSrc=0;
+RegDst=0;
+MemtoReg=0;
+nPC_sel=4;
+ALUctr=0;
+ExtHigh=0;
+JAL_PC=0;
+T_use_rs=0;
+T_use_rt=0;
+T_new=0;
+Multop=0;
+Start=0;
+MemOp=0;
+ExcCodeD=ExcCodeF;
+C0Write=0;
+ID_EXLClr=0;
+end
+`jal:begin
+MemWrite=0;
+RegWrite=1;
+ExtOp=0;
+ALUSrc=0;
+RegDst=0;
+MemtoReg=0;
+nPC_sel=2;
+ALUctr=0;
+ExtHigh=0;
+JAL_PC=1;
+T_use_rs=4;
+T_use_rt=4;
+T_new=2;
+Multop=0;
+Start=0;
+MemOp=0;
+ExcCodeD=ExcCodeF;
+C0Write=0;
+ID_EXLClr=0;
+end
+`lui:begin
+MemWrite=0;
+RegWrite=1;
+ExtOp=0;
+ALUSrc=1;
+RegDst=0;
+MemtoReg=0;
+nPC_sel=0;
+ALUctr=0;
+ExtHigh=1;
+JAL_PC=0;
+T_use_rs=4;
+T_use_rt=4;
+T_new=2;
+Multop=0;
+Start=0;
+MemOp=0;
+ExcCodeD=ExcCodeF;
+C0Write=0;
+ID_EXLClr=0;
+end
+`addi:begin
+MemWrite=0;
+RegWrite=1;
+ExtOp=1;
+ALUSrc=1;
+RegDst=0;
+MemtoReg=0;
+nPC_sel=0;
+ALUctr=6;
+ExtHigh=0;
+JAL_PC=0;
+T_use_rs=1;
+T_use_rt=1;
+T_new=2;
+Multop=0;
+Start=0;
+MemOp=0;
+ExcCodeD=ExcCodeF;
+C0Write=0;
+ID_EXLClr=0;
+end
+`andi:begin
+MemWrite=0;
+RegWrite=1;
+ExtOp=0;
+ALUSrc=1;
+RegDst=0;
+MemtoReg=0;
+nPC_sel=0;
+ALUctr=3;
+ExtHigh=0;
+JAL_PC=0;
+T_use_rs=1;
+T_use_rt=1;
+T_new=2;
+Multop=0;
+Start=0;
+MemOp=0;
+ExcCodeD=ExcCodeF;
+C0Write=0;
+ID_EXLClr=0;
+end
+`c0:begin
+	if(func==`eret) begin
+	MemWrite=0;
+	RegWrite=0;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=0;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=0;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=4;
+	T_use_rt=4;
+	T_new=0;
+	Multop=0;
+	Start=0;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=1;
+	end
+	else begin
+	case(COP)
+	`mfc0:begin
+	MemWrite=0;
+	RegWrite=1;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=0;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=0;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=4;
+	T_use_rt=4;
+	T_new=3;
+	Multop=0;
+	Start=0;
+	MemOp=6;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	`mtc0:begin
+	MemWrite=0;
+	RegWrite=0;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=0;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=0;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=4;
+	T_use_rt=3;
+	T_new=0;
+	Multop=0;
+	Start=0;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=1;
+	ID_EXLClr=0;
+	end
+	default:begin
+	MemWrite=0;
+	RegWrite=0;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=0;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=0;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=4;
+	T_use_rt=4;
+	T_new=0;
+	Multop=0;
+	Start=0;
+	MemOp=0;
+	ExcCodeD=10;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	endcase
+	end
+end
+`cal:begin
+	case(func)
+	`add:begin
+	MemWrite=0;
+	RegWrite=1;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=1;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=6;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=1;
+	T_use_rt=1;
+	T_new=2;
+	Multop=0;
+	Start=0;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	`sub:begin
+	MemWrite=0;
+	RegWrite=1;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=1;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=1;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=1;
+	T_use_rt=1;
+	T_new=2;
+	Multop=0;
+	Start=0;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	`jr:begin
+	MemWrite=0;
+	RegWrite=0;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=0;
+	MemtoReg=0;
+	nPC_sel=3;
+	ALUctr=0;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=0;
+	T_use_rt=4;
+	T_new=0;
+	Multop=0;
+	Start=0;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	`AND:begin
+	MemWrite=0;
+	RegWrite=1;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=1;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=3;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=1;
+	T_use_rt=1;
+	T_new=2;
+	Multop=0;
+	Start=0;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	`OR:begin
+	MemWrite=0;
+	RegWrite=1;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=1;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=2;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=1;
+	T_use_rt=1;
+	T_new=2;
+	Multop=0;
+	Start=0;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	`slt:begin
+	MemWrite=0;
+	RegWrite=1;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=1;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=4;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=1;
+	T_use_rt=1;
+	T_new=2;
+	Multop=0;
+	Start=0;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	`sltu:begin
+	MemWrite=0;
+	RegWrite=1;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=1;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=5;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=1;
+	T_use_rt=1;
+	T_new=2;
+	Multop=0;
+	Start=0;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	`mult:begin
+	MemWrite=0;
+	RegWrite=0;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=0;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=0;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=1;
+	T_use_rt=1;
+	T_new=0;
+	Multop=1;
+	Start=1;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	`div:begin
+	MemWrite=0;
+	RegWrite=0;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=0;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=0;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=1;
+	T_use_rt=1;
+	T_new=0;
+	Multop=2;
+	Start=1;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	`multu:begin
+	MemWrite=0;
+	RegWrite=0;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=0;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=0;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=1;
+	T_use_rt=1;
+	T_new=0;
+	Multop=7;
+	Start=1;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	`divu:begin
+	MemWrite=0;
+	RegWrite=0;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=0;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=0;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=1;
+	T_use_rt=1;
+	T_new=0;
+	Multop=8;
+	Start=1;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	`mthi:begin
+	MemWrite=0;
+	RegWrite=0;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=0;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=0;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=1;
+	T_use_rt=4;
+	T_new=0;
+	Multop=3;
+	Start=0;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	`mtlo:begin
+	MemWrite=0;
+	RegWrite=0;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=0;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=0;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=1;
+	T_use_rt=4;
+	T_new=0;
+	Multop=4;
+	Start=0;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	`mfhi:begin
+	MemWrite=0;
+	RegWrite=1;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=1;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=0;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=4;
+	T_use_rt=4;
+	T_new=2;
+	Multop=5;
+	Start=0;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	`mflo:begin
+	MemWrite=0;
+	RegWrite=1;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=1;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=0;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=4;
+	T_use_rt=4;
+	T_new=2;
+	Multop=6;
+	Start=0;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	`nop:begin
+	MemWrite=0;
+	RegWrite=0;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=0;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=0;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=4;
+	T_use_rt=4;
+	T_new=0;
+	Multop=0;
+	Start=0;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	`syscall:begin
+	MemWrite=0;
+	RegWrite=0;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=0;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=0;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=4;
+	T_use_rt=4;
+	T_new=0;
+	Multop=0;
+	Start=0;
+	MemOp=0;
+	ExcCodeD=8;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	default:begin
+	MemWrite=0;
+	RegWrite=0;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=0;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=0;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=4;
+	T_use_rt=4;
+	T_new=0;
+	Multop=0;
+	Start=0;
+	MemOp=0;
+	ExcCodeD=10;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	endcase
+	end
+default:begin
+MemWrite=0;
+RegWrite=0;
+ExtOp=0;
+ALUSrc=0;
+RegDst=0;
+MemtoReg=0;
+nPC_sel=0;
+ALUctr=0;
+ExtHigh=0;
+JAL_PC=0;
+T_use_rs=4;
+T_use_rt=4;
+T_new=0;
+Multop=0;
+Start=0;
+MemOp=0;
+ExcCodeD=10;
+C0Write=0;
+ID_EXLClr=0;
+end
+endcase
+end
+endmodule
+
+
+================================================================================
+### 文件: Controller_tb.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+
+////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer:
+//
+// Create Date:   22:44:18 10/30/2024
+// Design Name:   Controller
+// Module Name:   /home/co-eda/single_cpu/Controller_tb.v
+// Project Name:  single_cpu
+// Target Device:  
+// Tool versions:  
+// Description: 
+//
+// Verilog Test Fixture created by ISE for module: Controller
+//
+// Dependencies:
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+////////////////////////////////////////////////////////////////////////////////
+
+module Controller_tb;
+
+	// Inputs
+	reg [31:0] instr;
+
+	// Outputs
+	wire MemWrite;
+	wire RegWrite;
+	wire ExtOp;
+	wire ALUSrc;
+	wire RegDst;
+	wire MemtoReg;
+	wire [1:0] nPC_sel;
+	wire [2:0] ALUctr;
+	wire ExtHigh;
+	wire JAL_PC;
+
+	// Instantiate the Unit Under Test (UUT)
+	Controller uut (
+		.instr(instr), 
+		.MemWrite(MemWrite), 
+		.RegWrite(RegWrite), 
+		.ExtOp(ExtOp), 
+		.ALUSrc(ALUSrc), 
+		.RegDst(RegDst), 
+		.MemtoReg(MemtoReg), 
+		.nPC_sel(nPC_sel), 
+		.ALUctr(ALUctr), 
+		.ExtHigh(ExtHigh), 
+		.JAL_PC(JAL_PC)
+	);
+
+	initial begin
+		// Initialize Inputs
+		instr = 0;
+
+		// Wait 100 ns for global reset to finish
+		#100;
+      instr = 32'h341c0000;
+		#100;
+		instr = 32'h0c000c01;
+		// Add stimulus here
+
+	end
+      
+endmodule
+
+
+
+================================================================================
+### 文件: cp0.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date:    14:11:33 11/27/2024 
+// Design Name: 
+// Module Name:    CP0 
+// Project Name: 
+// Target Devices: 
+// Tool versions: 
+// Description: 
+//
+// Dependencies: 
+//
+// Revision: 
+// Revision 0.01 - File Created
+// Additional Comments: 
+//
+//////////////////////////////////////////////////////////////////////////////////
+module CP0(
+    input clk,
+    input reset,
+    input en,
+    input [4:0] CP0Add,
+    input [31:0] CP0In,
+    output reg[31:0] CP0Out,
+    input [31:0] VPC,
+    input BDIn,
+    input [4:0] ExcCodeIn,
+    input [5:0] HWInt,
+    input EXLClr,
+    output [31:0] EPCOut,
+    output Req
+    );
+
+// CP0�ڲ��Ĵ�������
+reg [31:0] SR;    // State Register
+reg [31:0] Cause; // Cause Register
+reg [31:0] EPC;   // Exception Program Counter
+
+wire inte;
+wire error;
+wire[4:0] real_ExcCode;
+
+// ��ʼ���Ĵ���
+initial begin
+    SR = 32'b0;
+    Cause = 32'b0;
+    EPC = 32'b0;
+end
+
+assign EPCOut=EPC;
+assign Req=(( (HWInt & SR[15:10]) != 0 && SR[1] == 0 && SR[0] == 1)|| ((ExcCodeIn == 5'd4) || (ExcCodeIn == 5'd5)
+                        ||(ExcCodeIn == 5'd8) || (ExcCodeIn == 5'd10) || (ExcCodeIn == 5'd12)))?1:0;
+assign inte=((HWInt & SR[15:10]) != 0 && SR[1] == 0 && SR[0] == 1) ? 1:0;
+assign error=(((ExcCodeIn == 5'd4) || (ExcCodeIn == 5'd5)
+                        ||(ExcCodeIn == 5'd8) || (ExcCodeIn == 5'd10) || (ExcCodeIn == 5'd12) )&&(!inte))?1:0;
+assign real_ExcCode=(inte)?0:ExcCodeIn;
+
+
+// ����д�����
+always @(posedge clk or posedge reset) begin
+	 if(reset) begin
+		  SR<=0;
+		  Cause<=0;
+		  EPC<=0;
+	 end
+	 else if(EXLClr) begin
+		  SR[1] <= 0;
+	 end
+	 else if (inte||error) begin
+		  if(inte) begin
+				if (BDIn) EPC <= VPC - 4;
+				else EPC <= VPC;
+				// ��¼�쳣����ʱ��PCֵ
+				Cause[15:10] <= HWInt;
+				Cause[6:2] <=real_ExcCode;
+				Cause[31] <= BDIn; // ��¼�Ƿ�Ϊ�ӳٲ�ָ��
+				SR[1] <= 1; // ����EXLλ
+		 end
+		 else if(error && (inte!=1) ) begin
+				SR[1] <= 1; // ����EXLλ
+				Cause[6:2] <= real_ExcCode; // ��¼�쳣����
+				Cause[15:10] <= HWInt;
+				Cause[31] <= BDIn; // ��¼�Ƿ�Ϊ�ӳٲ�ָ��
+				if (BDIn) EPC <= VPC - 4;
+				else EPC <= VPC;
+				// ��¼�쳣����ʱ��PCֵ
+		 end
+	 end
+    else if (en) begin
+		  Cause[15:10] <= HWInt;
+        case (CP0Add)
+            12: begin 
+					 SR[15:10] <= CP0In[15:10];
+					 SR[1] <= CP0In[1];
+					 SR[0] <= CP0In[0];
+					 end
+            14: EPC <= CP0In;
+            default: ;
+        endcase
+    end
+	 else begin
+	 Cause[15:10] <= HWInt;
+	 end
+end
+
+always @(*) begin
+    case (CP0Add)
+        12: CP0Out = SR;
+        13: CP0Out = Cause;
+        14: CP0Out = EPC;
+        default: CP0Out = 32'b0;
+    endcase
+	 
+end
+
+endmodule
+
+
+================================================================================
+### 文件: CP0_tb.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+
+////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer:
+//
+// Create Date:   15:52:56 11/27/2024
+// Design Name:   CP0
+// Module Name:   C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/CP0_tb.v
+// Project Name:  pipeline_cpu
+// Target Device:  
+// Tool versions:  
+// Description: 
+//
+// Verilog Test Fixture created by ISE for module: CP0
+//
+// Dependencies:
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+////////////////////////////////////////////////////////////////////////////////
+
+module CP0_tb;
+
+	// Inputs
+	reg clk;
+	reg reset;
+	reg en;
+	reg [4:0] CP0Add;
+	reg [31:0] CP0In;
+	reg [31:0] VPC;
+	reg BDIn;
+	reg [4:0] ExcCodeIn;
+	reg [5:0] HWInt;
+	reg EXLClr;
+
+	// Outputs
+	wire [31:0] CP0Out;
+	wire [31:0] EPCOut;
+	wire Req;
+
+	// Instantiate the Unit Under Test (UUT)
+	CP0 uut (
+		.clk(clk), 
+		.reset(reset), 
+		.en(en), 
+		.CP0Add(CP0Add), 
+		.CP0In(CP0In), 
+		.CP0Out(CP0Out), 
+		.VPC(VPC), 
+		.BDIn(BDIn), 
+		.ExcCodeIn(ExcCodeIn), 
+		.HWInt(HWInt), 
+		.EXLClr(EXLClr), 
+		.EPCOut(EPCOut), 
+		.Req(Req)
+	);
+
+	initial begin
+		// Initialize Inputs
+		clk = 0;
+		reset = 0;
+		en = 0;
+		CP0Add = 0;
+		CP0In = 0;
+		VPC = 0;
+		BDIn = 0;
+		ExcCodeIn = 0;
+		HWInt = 0;
+		EXLClr = 0;
+
+		// Wait 100 ns for global reset to finish
+		#100;
+        
+		// Add stimulus here
+
+	end
+      
+endmodule
+
+
+
+================================================================================
+### 文件: CPU.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date:    23:17:13 10/30/2024 
+// Design Name: 
+// Module Name:    mips 
+// Project Name: 
+// Target Devices: 
+// Tool versions: 
+// Description: 
+//
+// Dependencies: 
+//
+// Revision: 
+// Revision 0.01 - File Created
+// Additional Comments: 
+//
+//////////////////////////////////////////////////////////////////////////////////
+module CPU(
+    input clk,
+    input reset,
+    input [31:0] i_inst_rdata,
+    input [31:0] m_data_rdata,
+    output [31:0] i_inst_addr,
+    output [31:0] m_data_addr,
+    output [31:0] m_data_wdata,
+    output [3 :0] m_data_byteen,
+    output [31:0] m_inst_addr,
+    output w_grf_we,
+    output [4:0] w_grf_addr,
+    output [31:0] w_grf_wdata,
+    output [31:0] w_inst_addr,
+	 output cpu_we,
+	 input [5:0] HWInt
+);
+	
+	// Inputs
+	wire [4:0] RS;
+	wire [4:0] RT;
+	wire [4:0] rt;
+	wire [4:0] rs;
+	wire [4:0] rd;
+	wire [4:0] RSE;
+	wire [4:0] RTE;
+	wire [4:0] RDE;
+	wire [4:0] WAF;
+	wire [4:0] WAE;
+	wire [4:0] WAM;
+	wire MemtoRegE;
+	wire RegWriteM;
+	wire RegWriteW;
+	wire C0Write;
+	wire C0WriteE;
+	wire C0WriteM;
+	wire [4:0] ExcCode;
+	wire [4:0] ExcCodeF;
+	wire [4:0] ExcCodeD;
+	wire [4:0] ExcCodeE;
+	wire [4:0] ExcCodeM;
+	wire [4:0] ExcCodeA;
+	wire [4:0] ExcCodeW;
+	wire [31:0] HI;
+	wire [31:0] LO;
+	wire BDIn;
+	wire BDInD;
+	wire BDInE;
+	wire BDInM;
+	wire [2:0] nPC_selE;
+	wire [31:0] AOMMux;
+	wire [31:0] CP0Out;
+	wire [31:0] EPCOut;
+	
+	wire [31:0] instrE;
+	wire [31:0] instrM;
+	wire [31:0] instrW;
+	wire Req;
+
+	// Outputs
+	wire StallPC;
+	wire StallF;
+	wire CLRD;
+	wire [1:0] ForwardA;
+	wire [1:0] ForwardB;
+	
+	wire [2:0] nPC_sel;
+	wire [15:0] sel_PC;
+	wire [31:0] jr_PC;
+	wire [25:0] instr_index;
+
+	// Outputs
+	wire [31:0] instr;
+	wire [31:0] PC;
+	wire n_StallPC;
+	wire n_StallF;
+	wire [31:0] PCF;
+	wire [31:0] PCD;
+	wire [31:0] PCE;
+	wire [31:0] PCM;
+	wire [31:0] instrD;
+	
+	wire MemWrite;
+	wire RegWrite;
+	wire ExtOp;
+	wire ALUSrc;
+	wire RegDst;
+	wire MemtoReg;
+	wire [2:0] ALUctr;
+	wire ExtHigh;
+	wire JAL_PC;
+	wire [4:0] RD;
+	wire [31:0] R1;
+	wire [31:0] R2;
+	wire [15:0] immediate;
+	wire [31:0] ext_immediate;
+	wire MemWriteE;
+	wire RegDstE;
+	wire [31:0] R1D;
+	wire [31:0] R2D;
+	wire [31:0] IMD;
+	wire JAL_PCE;
+
+	wire [31:0] A;
+	wire [31:0] B;
+	wire [31:0] AOD;
+	// Outputs
+	wire [31:0] result;
+	
+	wire [31:0] WDD;
+	wire [4:0] WAD;
+
+	// Outputs
+	wire MemtoRegM;
+	wire MemWriteM;
+	wire [31:0] AOE;
+	wire [31:0] WDE;
+	
+	wire MemtoRegW;
+
+	wire [31:0] MDM;
+	wire [31:0] AOM;
+
+	
+	wire [13:2] Mem_address;
+	wire [31:0] MemtoRegMux;
+	wire [31:0] Mem_data;
+	wire WE;
+	wire [31:0] WD;
+	wire [2:0] n_sel;
+	wire [2:0] ALUctrE;
+	wire [31:0] out;
+	wire [1:0] R1DMux;
+	wire [1:0] R2DMux;
+	wire [31:0] RD1;
+	wire [31:0] RD2;
+	wire DMMux;
+	
+	wire [2:0] T_use_rs;
+	wire [2:0] T_use_rt;
+	wire [2:0] T_use_rsE;
+	wire [2:0] T_use_rtE;
+	wire [2:0] T_new;
+	wire [2:0] T_newE;	
+	wire [2:0] T_newM;
+	wire [3:0] Multop;
+	wire [3:0] MultopE;
+	wire start;
+	wire Start;
+	wire StartE;
+	wire Busy;
+	wire ID_EXLClr;
+	wire ID_EXLClrE;
+	wire ID_EXLClrM;
+	
+	wire [2:0] MemOp;
+	wire [2:0] MemOpE;
+	wire [2:0] MemOpM;
+	
+	wire [31:0] fixed_Mem_data;
+	
+//Global layer
+
+	Hazard_Cotroller hazard_control (
+		.RS(RS), 
+		.RT(RT), 
+		.rt(rt), 
+		.rs(rs), 
+		.RSE(RSE),
+		.RTE(RTE),
+		.WAD(WAD),
+		.WAE(WAE), 
+		.WAM(WAM), 
+		.n_sel(n_sel),
+		.PCE(PCE),
+		.MemtoRegB(MemtoRegB), 
+		.MemtoRegM(MemtoRegM),
+		.RegWriteM(RegWriteM), 
+		.RegWriteW(RegWriteW), 
+		.T_use_rs(T_use_rs),
+		.T_use_rt(T_use_rt),
+		.T_use_rsE(T_use_rsE),
+		.T_use_rtE(T_use_rtE),
+		.T_new(T_new),
+		.T_newE(T_newE),
+		.T_newM(T_newM),
+		.StallPC(StallPC), 
+		.StallF(StallF), 
+		.CLRD(CLRD), 
+		.ForwardA(ForwardA), 
+		.ForwardB(ForwardB),
+		.R1DMux(R1DMux),
+		.R2DMux(R2DMux),
+		.DMMux(DMMux),
+		.StartE(StartE),
+		.start(start),
+		.Busy(Busy),
+		.C0WriteE(C0WriteE),
+		.C0WriteM(C0WriteM),
+		.ID_EXLClr(ID_EXLClr)
+	);
+
+assign w_grf_we=RegWriteW;
+assign w_grf_addr=WAM;
+assign w_grf_wdata=WD;
+assign w_inst_addr=PCM;
+assign i_inst_addr=PC;
+assign instr=i_inst_rdata;
+
+reg[5:0] count_pc;
+
+initial begin
+count_pc=0;
+end
+always @(*) begin
+	if (PCM == 32'h0000_3548) count_pc=count_pc+1;
+end	
+
+//Fetch layer
+	IFU ifu (
+		.nPC_sel(nPC_sel), 
+		.sel_PC(sel_PC), 
+		.jr_PC(jr_PC), 
+		.instr_index(instr_index), 
+		.reset(reset), 
+		.clk(clk), 
+		.PC(PC),
+		.EN(n_StallPC),
+		.Req(Req),
+		.EPCOut(EPCOut),
+		.ExcCode(ExcCode),
+		.ID_EXLClr(ID_EXLClr)
+	);
+	
+	IF_ID if_id (
+		.reset(reset), 
+		.clk(clk), 
+		.instr(instr), 
+		.PC(PC), 
+		.next_instr(instrD), 
+		.next_PC(PCF), 
+		.EN(n_StallF),
+		.ExcCode(ExcCode),
+		.ExcCodeF(ExcCodeF),
+		.BDIn(BDIn),
+		.BDInD(BDInD),
+		.Req(Req),
+		.EPCOut(EPCOut),
+		.ID_EXLClr(ID_EXLClr)
+	);
+
+assign n_StallPC=~StallPC;
+assign n_StallF=~StallF;
+assign BDIn=(n_sel!=0)?1:0;	
+
+//Decode layer	
+	Controller controller (
+		.instr(instrD), 
+		.MemWrite(MemWrite), 
+		.RegWrite(RegWrite), 
+		.ExtOp(ExtOp), 
+		.ALUSrc(ALUSrc), 
+		.RegDst(RegDst), 
+		.MemtoReg(MemtoReg), 
+		.nPC_sel(n_sel), 
+		.ALUctr(ALUctr), 
+		.ExtHigh(ExtHigh), 
+		.JAL_PC(JAL_PC),
+		.T_use_rs(T_use_rs),
+		.T_use_rt(T_use_rt),
+		.T_new(T_new),
+		.Multop(Multop),
+		.Start(Start),
+		.MemOp(MemOp),
+		.ExcCodeF(ExcCodeF),
+		.ExcCodeD(ExcCodeD),
+		.C0Write(C0Write),
+		.ID_EXLClr(ID_EXLClr)
+	);
+	
+	GRF grf (
+		.reset(reset), 
+		.clk(clk), 
+		.WE(WE), 
+		.PC(PCM),
+		.A1(RS), 
+		.A2(RT), 
+		.A3(WAM), 
+		.WD(WD), 
+		.R1(R1), 
+		.R2(R2)
+	);
+	
+	Ext ext (
+		.ExtOp(ExtOp), 
+		.ExtHigh(ExtHigh), 
+		.in(immediate), 
+		.out(ext_immediate)
+	);
+	
+	Trans trans (
+		.instr(instrD), 
+		.rs(RS), 
+		.rt(RT), 
+		.rd(RD), 
+		.immediate(immediate), 
+		.instr_index(instr_index)
+	);
+
+	ID_EX id_ex (
+		.CLR(CLRD), 
+		.MemtoReg(MemtoReg), 
+		.MemWrite(MemWrite), 
+		.RegDst(RegDst), 
+		.RegWrite(RegWrite), 
+		.ALUctr(ALUctr), 
+		.ALUSrc(ALUSrc), 
+		.MemtoRegE(MemtoRegE), 
+		.RegWriteE(RegWriteE), 
+		.MemWriteE(MemWriteE), 
+		.WAF(WAF),
+		.WAD(WAD),
+		.ALUctrE(ALUctrE), 
+		.ALUSrcE(ALUSrcE), 
+		.RegDstE(RegDstE), 
+		.PCF(PCF), 
+		.PCD(PCD), 
+		.Multop(Multop),
+		.MultopE(MultopE),
+		.R1(RD1), 
+		.R2(RD2), 
+		.R1D(R1D), 
+		.R2D(R2D), 
+		.ext_immediate(ext_immediate), 
+		.IMD(IMD), 
+		.clk(clk), 
+		.reset(reset), 
+		.JAL_PC(JAL_PC), 
+		.JAL_PCE(JAL_PCE), 
+		.RS(RS), 
+		.rs(rs), 
+		.RT(RT), 
+		.rt(rt), 
+		.RD(RD), 
+		.rd(rd),
+		.T_use_rs(T_use_rs),
+		.T_use_rt(T_use_rt),
+		.T_new(T_new),
+		.T_use_rsE(T_use_rsE),
+		.T_use_rtE(T_use_rtE),
+		.T_newE(T_newE),
+		.Start(Start),
+		.StartE(StartE),
+		.MemOp(MemOp),
+		.MemOpE(MemOpE),
+		.ExcCodeD(ExcCodeD),
+		.ExcCodeE(ExcCodeA),
+		.BDIn(BDInD),
+		.BDInE(BDInE),
+		.nPC_sel(nPC_sel),
+		.nPC_selE(nPC_selE),
+		.C0Write(C0Write),
+		.C0WriteE(C0WriteE),
+		.Req(Req),
+		.ID_EXLClr(ID_EXLClr),
+		.ID_EXLClrE(ID_EXLClrE),
+		.instrD(instrD),
+		.instrE(instrE)
+	);
+
+assign RD1=(R1DMux==1)?AOE:
+			  (R1DMux==2)?WD:
+			  R1;
+assign RD2=(R2DMux==1)?AOE:
+			  (R2DMux==2)?WD:
+			  R2;	
+assign equal=(RD1==RD2);
+assign nPC_sel=(n_sel==1 && equal==0)?0:
+					(n_sel==4 && equal==1)?0:
+					n_sel;				
+assign sel_PC=immediate;
+assign jr_PC=RD1;
+assign WAF=(JAL_PC==1)?31:
+				(RegDst==1)?RD:
+				RT;
+
+
+//Execute layer
+	ALU alu (
+		.rs(A), 
+		.rt(B), 
+		.ALUop(ALUctrE), 
+		.result(result),
+		.ExcCodeA(ExcCodeA),
+		.ExcCodeE(ExcCodeE),
+		.MemtoRegE(MemtoRegE),
+		.MemWriteE(MemWriteE)
+	);
+	
+	mult mul (
+		.reset(reset), 
+		.clk(clk), 
+		.start(start), 
+		.op(MultopE), 
+		.Busy(Busy), 
+		.A(A), 
+		.B(B), 
+		.HI(HI), 
+		.LO(LO),
+		.Req(Req)
+	);
+	
+	IE_IM ie_im (
+		.reset(reset), 
+		.clk(clk), 
+		.MemtoRegE(MemtoRegE), 
+		.MemWriteE(MemWriteE), 
+		.RegWriteE(RegWriteE), 
+		.rs(rs),
+		.rt(rt),
+		.rd(rd),
+		.RSE(RSE),
+		.RTE(RTE),
+		.RDE(RDE),
+		.result(AOD), 
+		.WDD(WDD), 
+		.WAD(WAD), 
+		.MemtoRegM(MemtoRegM), 
+		.RegWriteM(RegWriteM), 
+		.MemWriteM(MemWriteM), 
+		.AOE(AOE), 
+		.WDE(WDE), 
+		.WAE(WAE), 
+		.PCD(PCD), 
+		.PCE(PCE),
+		.T_newE(T_newE),
+		.T_newM(T_newM),
+		.MemOpE(MemOpE),
+		.MemOpM(MemOpM),
+		.ExcCodeE(ExcCodeE),
+		.ExcCodeM(ExcCodeM),
+		.BDInE(BDInE),
+		.BDInM(BDInM),
+		.C0WriteE(C0WriteE),
+		.C0WriteM(C0WriteM),
+		.Req(Req),
+		.ID_EXLClrE(ID_EXLClrE),
+		.ID_EXLClrM(ID_EXLClrM),
+		.instrE(instrE),
+		.instrM(instrM)
+	);
+
+assign A=(ForwardA==2)?AOE:
+			(ForwardA==1)?WD:
+			R1D;
+assign AOD=(JAL_PCE==1)?PCD+8:
+				(MultopE==5)?HI:
+				(MultopE==6)?LO:
+				result;
+assign WDD=(ForwardB==2)?AOE:
+			(ForwardB==1)?WD:
+			R2D;
+assign B=(ALUSrcE==1)?IMD:
+			WDD;
+
+//Memory layer
+	DE de (
+		.Address(AOE), 
+		.Din(m_data_rdata), 
+		.MemOpE(MemOpM), 
+		.Dout(out),
+		.Req(Req)
+	);
+	
+	BE be (
+		.m_data_byteen(m_data_byteen), 
+		.Address(AOE), 
+		.MemOpE(MemOpM), 
+		.MemWriteE(MemWriteM),
+		.Mem_data(Mem_data),
+		.fixed_Mem_data(fixed_Mem_data),
+		.Req(Req)
+	);
+	
+	IM_IW im_iw (
+		.reset(reset), 
+		.clk(clk), 
+		.MemtoRegM(MemtoRegM), 
+		.RegWriteM(RegWriteM), 
+		.MemtoRegW(MemtoRegW), 
+		.RegWriteW(RegWriteW), 
+		.out(out), 
+		.MDM(MDM), 
+		.AOE(AOMMux), 
+		.AOM(AOM), 
+		.WAE(WAE), 
+		.WAM(WAM), 
+		.PCE(PCE), 
+		.PCM(PCM),
+		.Req(Req),
+		.instrM(instrM),
+		.instrW(instrW)
+	);
+	
+	ExcM excM (
+		.MemtoRegM(MemtoRegM), 
+		.MemWriteM(MemWriteM), 
+		.MemOpM(MemOpM), 
+		.Address(AOE), 
+		.ExcCodeM(ExcCodeM), 
+		.ExcCodeW(ExcCodeW)
+	);
+	
+	CP0 cp0 (
+		.clk(clk), 
+		.reset(reset), 
+		.en(C0WriteM), 
+		.CP0Add(RDE), 
+		.CP0In(Mem_data), 
+		.CP0Out(CP0Out), 
+		.VPC(PCE), 
+		.BDIn(BDInM), 
+		.ExcCodeIn(ExcCodeW), 
+		.HWInt(HWInt), 
+		.EXLClr(ID_EXLClrM), 
+		.EPCOut(EPCOut), 
+		.Req(Req)
+	);
+	
+reg [31:0] instrP;
+reg [31:0] instrQ;
+reg [31:0] instrH;
+reg [31:0] instr1;
+reg [31:0] instr2;
+reg [31:0] instr3;
+reg [31:0] instr4;
+reg [31:0] instr5;
+reg [31:0] instr6;
+reg [31:0] instr7;
+reg [31:0] instr8;
+reg [31:0] instr9;
+reg [31:0] instr10;
+reg [31:0] PCW;
+reg [31:0] PC1;
+reg [31:0] PC2;
+reg [31:0] PC3;
+reg [31:0] PC4;
+reg [31:0] PC5;
+reg [31:0] PC6;
+reg [31:0] PC7;
+reg [31:0] PC8;
+reg [31:0] PC9;
+reg [31:0] PC10;
+
+always @(posedge clk) begin
+instrP<=instrW;
+instrQ<=instrP;
+instrH<=instrQ;
+instr1<=instrH;
+instr2<=instr1;
+instr3<=instr2;
+instr4<=instr3;
+instr5<=instr4;
+instr6<=instr5;
+instr7<=instr6;
+instr8<=instr7;
+instr9<=instr8;
+instr10<=instr9;
+PCW<=PCM;
+PC1<=PCW;
+PC2<=PC1;
+PC3<=PC2;
+PC4<=PC3;
+PC5<=PC4;
+PC6<=PC5;
+PC7<=PC6;
+PC8<=PC7;
+PC9<=PC8;
+PC10<=PC9;
+end
+	
+assign m_data_addr=AOE;
+assign m_data_wdata=fixed_Mem_data;
+assign m_inst_addr=PCE;
+assign AOMMux=(MemOpM==6)?CP0Out:AOE;
+assign cpu_we=MemWriteM;
+
+//Write layer
+assign MemtoRegMux=(MemtoRegW==1)?MDM:AOM;
+assign WE=RegWriteW;
+assign WD=MemtoRegMux;
+assign Mem_data=(DMMux==1)?WD:WDE;
+
+endmodule
+
+
+================================================================================
+### 文件: CPU_tb.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+
+////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer:
+//
+// Create Date:   19:51:51 11/29/2024
+// Design Name:   CPU
+// Module Name:   C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/CPU_tb.v
+// Project Name:  pipeline_cpu
+// Target Device:  
+// Tool versions:  
+// Description: 
+//
+// Verilog Test Fixture created by ISE for module: CPU
+//
+// Dependencies:
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+////////////////////////////////////////////////////////////////////////////////
+
+module CPU_tb;
+
+	// Inputs
+	reg clk;
+	reg reset;
+	reg [31:0] i_inst_rdata;
+	reg [31:0] m_data_rdata;
+
+	// Outputs
+	wire [31:0] i_inst_addr;
+	wire [31:0] m_data_addr;
+	wire [31:0] m_data_wdata;
+	wire [3:0] m_data_byteen;
+	wire [31:0] m_inst_addr;
+	wire w_grf_we;
+	wire [4:0] w_grf_addr;
+	wire [31:0] w_grf_wdata;
+	wire [31:0] w_inst_addr;
+
+	// Instantiate the Unit Under Test (UUT)
+	CPU uut (
+		.clk(clk), 
+		.reset(reset), 
+		.i_inst_rdata(i_inst_rdata), 
+		.m_data_rdata(m_data_rdata), 
+		.i_inst_addr(i_inst_addr), 
+		.m_data_addr(m_data_addr), 
+		.m_data_wdata(m_data_wdata), 
+		.m_data_byteen(m_data_byteen), 
+		.m_inst_addr(m_inst_addr), 
+		.w_grf_we(w_grf_we), 
+		.w_grf_addr(w_grf_addr), 
+		.w_grf_wdata(w_grf_wdata), 
+		.w_inst_addr(w_inst_addr)
+	);
+
+	initial begin
+		// Initialize Inputs
+		clk = 0;
+		reset = 0;
+		i_inst_rdata = 0;
+		m_data_rdata = 0;
+
+		// Wait 100 ns for global reset to finish
+		#100;
+        
+		// Add stimulus here
+
+	end
+      
+endmodule
+
+
+
+================================================================================
+### 文件: DE.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date:    20:15:18 11/14/2024 
+// Design Name: 
+// Module Name:    DE 
+// Project Name: 
+// Target Devices: 
+// Tool versions: 
+// Description: 
+//
+// Dependencies: 
+//
+// Revision: 
+// Revision 0.01 - File Created
+// Additional Comments: 
+//
+//////////////////////////////////////////////////////////////////////////////////
+module DE(
+    input [31:0] Address,
+    input [31:0] Din,
+    input [2:0] MemOpE,
+    output reg [31:0] Dout,
+	 input Req
+    );
+
+always @(*) begin
+if(Req) begin
+Dout=0;
+end
+else begin
+case(MemOpE) 
+3:begin
+Dout=Din;
+end
+4:begin
+if(Address[1]==0) begin
+Dout=$signed(Din[15:0]);
+end
+else if(Address[1]==1) begin
+Dout=$signed(Din[31:16]);
+end
+else Dout=0;
+end
+5:begin
+if(Address[1:0]==0) begin
+Dout=$signed(Din[7:0]);
+end
+else if(Address[1:0]==1) begin
+Dout=$signed(Din[15:8]);
+end
+else if(Address[1:0]==2) begin
+Dout=$signed(Din[23:16]);
+end
+else if(Address[1:0]==3) begin
+Dout=$signed(Din[31:24]);
+end
+else Dout=0;
+end
+default Dout=0;
+endcase
+end
+end
+
+endmodule
+
+
+================================================================================
+### 文件: DE_tb.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+
+////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer:
+//
+// Create Date:   20:24:55 11/14/2024
+// Design Name:   DE
+// Module Name:   C:/Users/lenovo/Desktop/codes/verilog/ppcpu/DE_tb.v
+// Project Name:  pipeline_cpu
+// Target Device:  
+// Tool versions:  
+// Description: 
+//
+// Verilog Test Fixture created by ISE for module: DE
+//
+// Dependencies:
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+////////////////////////////////////////////////////////////////////////////////
+
+module DE_tb;
+
+	// Inputs
+	reg [31:0] Address;
+	reg [31:0] Din;
+	reg [2:0] MemOpE;
+
+	// Outputs
+	wire [31:0] Dout;
+
+	// Instantiate the Unit Under Test (UUT)
+	DE uut (
+		.Address(Address), 
+		.Din(Din), 
+		.MemOpE(MemOpE), 
+		.Dout(Dout)
+	);
+
+	initial begin
+		// Initialize Inputs
+		Address = 0;
+		Din = 0;
+		MemOpE = 0;
+
+		// Wait 100 ns for global reset to finish
+		#100;
+      Address = 0;
+		Din = 32'h0000d999;
+		MemOpE = 4;
+		// Add stimulus here
+
+	end
+      
+endmodule
+
+
+
+================================================================================
+### 文件: div.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date:    16:09:15 11/13/2024 
+// Design Name: 
+// Module Name:    div 
+// Project Name: 
+// Target Devices: 
+// Tool versions: 
+// Description: 
+//
+// Dependencies: 
+//
+// Revision: 
+// Revision 0.01 - File Created
+// Additional Comments: 
+//
+//////////////////////////////////////////////////////////////////////////////////
+module div(
+    input reset,
+    input clk,
+    input start,
+    output Busy,
+    input [31:0] A,
+    input [31:0] B,
+    output [31:0] HI,
+    output [31:0] LO
+    );
+
+reg [3:0] count;
+reg [31:0] hi;
+reg [31:0] lo;
+reg [31:0] temp1;
+reg [31:0] temp2;
+
+assign HI=(count!=0 || start==1)?0:temp2;
+assign LO=(count!=0 || start==1)?0:temp1;
+assign Busy=(count!=0)?1:0;
+
+initial begin
+count=0;
+hi=0;
+lo=0;
+temp1=0;
+temp2=0;
+end
+
+always @(*) begin
+temp1=A/B;
+temp2=A%B;
+end
+
+always @(posedge clk or posedge reset) begin
+if(reset) begin
+count<=0;
+temp1<=0;
+temp2<=0;
+hi<=0;
+lo<=0;
+end
+else begin
+	if(start) begin
+	count<=10;
+	end
+	else if(count!=0) begin
+	count<=count-1;
+	end
+	else begin
+	hi<=temp2;
+	lo<=temp1;
+	end
+end
+end
+
+endmodule
+
+
+================================================================================
+### 文件: div_tb.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+
+////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer:
+//
+// Create Date:   16:12:19 11/13/2024
+// Design Name:   div
+// Module Name:   C:/Users/lenovo/Desktop/codes/verilog/ppcpu/div_tb.v
+// Project Name:  pipeline_cpu
+// Target Device:  
+// Tool versions:  
+// Description: 
+//
+// Verilog Test Fixture created by ISE for module: div
+//
+// Dependencies:
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+////////////////////////////////////////////////////////////////////////////////
+
+module div_tb;
+
+	// Inputs
+	reg reset;
+	reg clk;
+	reg start;
+	reg [31:0] A;
+	reg [31:0] B;
+
+	// Outputs
+	wire Busy;
+	wire [31:0] HI;
+	wire [31:0] LO;
+
+	// Instantiate the Unit Under Test (UUT)
+	div uut (
+		.reset(reset), 
+		.clk(clk), 
+		.start(start), 
+		.Busy(Busy), 
+		.A(A), 
+		.B(B), 
+		.HI(HI), 
+		.LO(LO)
+	);
+
+	initial begin
+		// Initialize Inputs
+		reset = 0;
+		clk = 0;
+		start = 0;
+		A = 0;
+		B = 0;
+
+		// Wait 100 ns for global reset to finish
+		#100;
+      A = 21;
+		B = 5;
+		start=1;
+		
+		#10 start=0;
+		// Add stimulus here
+
+	end
+   
+	always #5 clk=~clk;
+endmodule
+
+
+
+================================================================================
+### 文件: DM.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date:    18:36:15 10/29/2024 
+// Design Name: 
+// Module Name:    DM 
+// Project Name: 
+// Target Devices: 
+// Tool versions: 
+// Description: 
+//
+// Dependencies: 
+//
+// Revision: 
+// Revision 0.01 - File Created
+// Additional Comments: 
+//
+//////////////////////////////////////////////////////////////////////////////////
+module DM(
+    input reset,
+	 input clk,
+    input MemWrite,
+	 input [31:0] pc,
+    input [31:0] data,
+    input [13:2] address,
+    output [31:0] out
+    );
+
+reg[31:0] Mem[0:3072];
+assign out=Mem[address];
+
+integer i;
+
+initial begin
+for(i=0;i<=3072;i=i+1) begin
+Mem[i]=0;
+end
+end
+
+always @(posedge clk or posedge reset) begin
+if(reset) begin
+	for(i=0;i<=3072;i=i+1) begin
+	Mem[i]<=0;
+	end
+end
+else begin
+	if(MemWrite) begin
+		Mem[address]<=data;
+		$display("%d@%h: *%h <= %h",$time, pc, {18'b0,address,2'b00}, data);
+		end
+	end
+end
+
+endmodule
+
+
+================================================================================
+### 文件: DM_tb.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+
+////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer:
+//
+// Create Date:   19:18:50 10/29/2024
+// Design Name:   DM
+// Module Name:   /home/co-eda/single_cpu/DM_tb.v
+// Project Name:  single_cpu
+// Target Device:  
+// Tool versions:  
+// Description: 
+//
+// Verilog Test Fixture created by ISE for module: DM
+//
+// Dependencies:
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+////////////////////////////////////////////////////////////////////////////////
+
+module DM_tb;
+
+	// Inputs
+	reg reset;
+	reg clk;
+	reg [31:0] pc;
+	reg MemWrite;
+	reg [31:0] data;
+	reg [13:2] address;
+
+	// Outputs
+	wire [31:0] out;
+
+	// Instantiate the Unit Under Test (UUT)
+	DM uut (
+		.reset(reset), 
+		.clk(clk), 
+		.pc(pc),
+		.MemWrite(MemWrite), 
+		.data(data), 
+		.address(address), 
+		.out(out)
+	);
+
+	initial begin
+		// Initialize Inputs
+		reset = 1;
+		clk = 0;
+		MemWrite = 0;
+		data = 0;
+		address = 0;
+		pc=0;
+
+		// Wait 100 ns for global reset to finish
+		#100;
+		reset=0;
+      address = 50;
+		data = 50;
+		MemWrite = 1;
+		
+		#100;
+		address=3071;
+		// Add stimulus here
+
+	end
+   always #5 clk=~clk;   
+endmodule
+
+
+
+================================================================================
+### 文件: ExcM.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date:    16:36:47 11/27/2024 
+// Design Name: 
+// Module Name:    ExcM 
+// Project Name: 
+// Target Devices: 
+// Tool versions: 
+// Description: 
+//
+// Dependencies: 
+//
+// Revision: 
+// Revision 0.01 - File Created
+// Additional Comments: 
+//
+//////////////////////////////////////////////////////////////////////////////////
+module ExcM(
+    input MemtoRegM,
+    input MemWriteM,
+    input [2:0] MemOpM,
+    input [31:0] Address,
+    input [4:0] ExcCodeM,
+    output reg[4:0] ExcCodeW
+    );
+
+reg inrange;
+
+always @(*) begin
+	if((Address>=32'h0000_0000 && Address<=32'h0000_2FFF)||(Address>=32'h0000_7F00 && Address<=32'h0000_7F0B)||(Address>=32'h0000_7F10 && Address<=32'h0000_7F1B)||(Address>=32'h0000_7F20 && Address<=32'h0000_7F23)) inrange=1;
+	else inrange=0;
+	if(MemtoRegM) begin
+		if(MemOpM==3) begin
+			if(Address%4==0 && inrange) ExcCodeW=ExcCodeM;
+			else ExcCodeW=4;
+		end
+		if(MemOpM==4) begin
+			if(Address%2==0 && ((Address>=32'h0000_0000 && Address<=32'h0000_2FFF)||(Address>=32'h0000_7F20 && Address<=32'h0000_7F23))) begin
+				ExcCodeW=ExcCodeM;
+			end
+			else ExcCodeW=4;
+		end
+		if(MemOpM==5) begin
+			if((Address>=32'h0000_0000 && Address<=32'h0000_2FFF)||(Address>=32'h0000_7F20 && Address<=32'h0000_7F23)) ExcCodeW=ExcCodeM;
+			else ExcCodeW=4;
+		end
+	end
+	if(MemWriteM) begin
+		if(MemOpM==0) begin
+			if(Address%4==0 && inrange && Address!=32'h0000_7F08 && Address!=32'h0000_7F18) ExcCodeW=ExcCodeM;
+			else ExcCodeW=5;
+		end
+		if(MemOpM==1) begin
+			if(Address%2==0 && ((Address>=32'h0000_0000 && Address<=32'h0000_2FFF)||(Address>=32'h0000_7F20 && Address<=32'h0000_7F23))) begin
+				ExcCodeW=ExcCodeM;
+			end
+			else ExcCodeW=5;
+		end
+		if(MemOpM==2) begin
+			if((Address>=32'h0000_0000 && Address<=32'h0000_2FFF)||(Address>=32'h0000_7F20 && Address<=32'h0000_7F23)) ExcCodeW=ExcCodeM;
+			else ExcCodeW=5;
+		end
+	end
+	if(MemWriteM!=1 && MemtoRegM!=1) ExcCodeW=ExcCodeM;
+end
+
+endmodule
+
+
+================================================================================
+### 文件: ExcM_tb.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+
+////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer:
+//
+// Create Date:   20:27:56 11/27/2024
+// Design Name:   ExcM
+// Module Name:   C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/ExcM_tb.v
+// Project Name:  pipeline_cpu
+// Target Device:  
+// Tool versions:  
+// Description: 
+//
+// Verilog Test Fixture created by ISE for module: ExcM
+//
+// Dependencies:
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+////////////////////////////////////////////////////////////////////////////////
+
+module ExcM_tb;
+
+	// Inputs
+	reg MemtoRegM;
+	reg MemWriteM;
+	reg [2:0] MemOpM;
+	reg [31:0] Address;
+	reg [5:0] ExcCodeM;
+
+	// Outputs
+	wire [5:0] ExcCodeW;
+
+	// Instantiate the Unit Under Test (UUT)
+	ExcM uut (
+		.MemtoRegM(MemtoRegM), 
+		.MemWriteM(MemWriteM), 
+		.MemOpM(MemOpM), 
+		.Address(Address), 
+		.ExcCodeM(ExcCodeM), 
+		.ExcCodeW(ExcCodeW)
+	);
+
+	initial begin
+		// Initialize Inputs
+		MemtoRegM = 0;
+		MemWriteM = 0;
+		MemOpM = 0;
+		Address = 0;
+		ExcCodeM = 0;
+
+		// Wait 100 ns for global reset to finish
+		#100;
+      MemWriteM = 1;
+		MemOpM = 1;
+		Address = 32'h0000_7FFF;
+		// Add stimulus here
+
+	end
+      
+endmodule
+
+
+
+================================================================================
+### 文件: Ext.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date:    22:54:51 10/30/2024 
+// Design Name: 
+// Module Name:    Ext 
+// Project Name: 
+// Target Devices: 
+// Tool versions: 
+// Description: 
+//
+// Dependencies: 
+//
+// Revision: 
+// Revision 0.01 - File Created
+// Additional Comments: 
+//
+//////////////////////////////////////////////////////////////////////////////////
+module Ext(
+    input ExtOp,
+    input ExtHigh,
+    input [15:0] in,
+    output reg[31:0] out
+    );
+
+always @(*) begin
+if(ExtOp) begin
+out=$signed(in);
+end
+else begin
+	if(ExtHigh) begin
+	out={in,16'b0};
+	end
+	else out=in;
+end
+end
+
+endmodule
+
+
+================================================================================
+### 文件: Ext_tb.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+
+////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer:
+//
+// Create Date:   23:02:51 10/30/2024
+// Design Name:   Ext
+// Module Name:   /home/co-eda/single_cpu/Ext_tb.v
+// Project Name:  single_cpu
+// Target Device:  
+// Tool versions:  
+// Description: 
+//
+// Verilog Test Fixture created by ISE for module: Ext
+//
+// Dependencies:
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+////////////////////////////////////////////////////////////////////////////////
+
+module Ext_tb;
+
+	// Inputs
+	reg ExtOp;
+	reg ExtHigh;
+	reg [15:0] in;
+
+	// Outputs
+	wire [31:0] out;
+
+	// Instantiate the Unit Under Test (UUT)
+	Ext uut (
+		.ExtOp(ExtOp), 
+		.ExtHigh(ExtHigh), 
+		.in(in), 
+		.out(out)
+	);
+
+	initial begin
+		// Initialize Inputs
+		ExtOp = 0;
+		ExtHigh = 0;
+		in = 0;
+
+		// Wait 100 ns for global reset to finish
+		#100;
+      in = 10;
+		#100;
+		ExtOp = 1;
+		in = 16'b1111_0000_0000_0001;
+		#100;
+		ExtOp=0;
+		ExtHigh=1;
+		// Add stimulus here
+
+	end
+      
+endmodule
+
+
+
+================================================================================
+### 文件: generated_mips_test.v ###
+================================================================================
+
+`timescale 1ns/1ps
+module generated_mips_test;
+
+	reg clk;
+	reg reset;
+	reg interrupt;
+
+	wire [31:0] macroscopic_pc;
+
+	wire [31:0] i_inst_addr;
+	wire [31:0] i_inst_rdata;
+
+	wire [31:0] m_data_addr;
+	wire [31:0] m_data_rdata;
+	wire [31:0] m_data_wdata;
+	wire [3 :0] m_data_byteen;
+
+	wire [31:0] m_int_addr;
+	wire [3 :0] m_int_byteen;
+
+	wire [31:0] m_inst_addr;
+
+	wire		w_grf_we;
+	wire [4 :0] w_grf_addr;
+	wire [31:0] w_grf_wdata;
+
+	wire [31:0] w_inst_addr;
+
+	mips uut(
+		.clk(clk),
+		.reset(reset),
+		.interrupt(interrupt),
+		.macroscopic_pc(macroscopic_pc),
+
+		.i_inst_addr(i_inst_addr),
+		.i_inst_rdata(i_inst_rdata),
+
+		.m_data_addr(m_data_addr),
+		.m_data_rdata(m_data_rdata),
+		.m_data_wdata(m_data_wdata),
+		.m_data_byteen(m_data_byteen),
+
+		.m_int_addr(m_int_addr),
+		.m_int_byteen(m_int_byteen),
+
+		.m_inst_addr(m_inst_addr),
+
+		.w_grf_we(w_grf_we),
+		.w_grf_addr(w_grf_addr),
+		.w_grf_wdata(w_grf_wdata),
+
+		.w_inst_addr(w_inst_addr)
+	);
+
+	initial begin
+		clk <= 0;
+		reset <= 1;
+		interrupt <= 0;
+		#20 reset <= 0;
+	end
+
+	integer i;
+	reg [31:0] fixed_addr;
+	reg [31:0] fixed_wdata;
+	reg [31:0] data[0:4095];
+	reg [31:0] inst[0:5119];
+
+	// ----------- For Instructions -----------
+
+	assign m_data_rdata = data[(m_data_addr >> 2) % 5120];
+	assign i_inst_rdata = inst[((i_inst_addr - 32'h3000) >> 2) % 5120];
+
+	initial begin
+		$readmemh("code.txt", inst);
+		for (i = 0; i < 5120; i = i + 1) data[i] <= 0;
+	end
+
+	// ----------- For Data Memory -----------
+
+	always @(*) begin
+		fixed_wdata = data[(m_data_addr >> 2) & 4095];
+		fixed_addr = m_data_addr & 32'hfffffffc;
+		if (m_data_byteen[3]) fixed_wdata[31:24] = m_data_wdata[31:24];
+		if (m_data_byteen[2]) fixed_wdata[23:16] = m_data_wdata[23:16];
+		if (m_data_byteen[1]) fixed_wdata[15: 8] = m_data_wdata[15: 8];
+		if (m_data_byteen[0]) fixed_wdata[7 : 0] = m_data_wdata[7 : 0];
+	end
+
+	always @(posedge clk) begin
+        if (~reset) begin
+			if (w_grf_we && (w_grf_addr != 0)) begin
+				$display("%d@%h: $%d <= %h", $time, w_inst_addr, w_grf_addr, w_grf_wdata);
+			end
+		end
+		if (reset) for (i = 0; i < 4096; i = i + 1) data[i] <= 0;
+		else if (|m_data_byteen && fixed_addr >> 2 < 4096) begin
+			data[fixed_addr >> 2] <= fixed_wdata;
+			$display("%d@%h: *%h <= %h", $time, m_inst_addr, fixed_addr, fixed_wdata);
+		end
+	end
+
+	always #2 clk <= ~clk;
+
+endmodule
+
+
+================================================================================
+### 文件: GRF.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date:    16:57:56 10/29/2024 
+// Design Name: 
+// Module Name:    GRF 
+// Project Name: 
+// Target Devices: 
+// Tool versions: 
+// Description: 
+//
+// Dependencies: 
+//
+// Revision: 
+// Revision 0.01 - File Created
+// Additional Comments: 
+//
+//////////////////////////////////////////////////////////////////////////////////
+module GRF(
+    input reset,
+	 input clk,
+	 input [31:0] PC,
+    input WE,
+    input [4:0] A1,
+    input [4:0] A2,
+    input [4:0] A3,
+    input [31:0] WD,
+    output [31:0] R1,
+    output [31:0] R2
+    );
+
+reg [31:0] registers[31:0];
+
+assign R1=(A1==0)?0:registers[A1];
+assign R2=(A2==0)?0:registers[A2];
+
+integer i;
+initial begin
+for(i=0;i<=31;i=i+1) begin
+registers[i]=0;
+end
+end
+
+always @(posedge clk or posedge reset) begin
+if(reset) begin
+	for(i=0;i<=31;i=i+1) begin	
+	registers[i]<=0;
+	end
+end
+else begin
+	if(WE) begin
+	registers[A3]<=WD;
+	end
+end
+end
+
+endmodule
+
+
+================================================================================
+### 文件: GRF_tb.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+
+////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer:
+//
+// Create Date:   18:16:53 10/29/2024
+// Design Name:   GRF
+// Module Name:   /home/co-eda/single_cpu/GRF_tb.v
+// Project Name:  single_cpu
+// Target Device:  
+// Tool versions:  
+// Description: 
+//
+// Verilog Test Fixture created by ISE for module: GRF
+//
+// Dependencies:
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+////////////////////////////////////////////////////////////////////////////////
+
+module GRF_tb;
+
+	// Inputs
+	reg reset;
+	reg clk;
+	reg WE;
+	reg [31:0] PC;
+	reg [4:0] A1;
+	reg [4:0] A2;
+	reg [4:0] A3;
+	reg [31:0] WD;
+
+	// Outputs
+	wire [31:0] R1;
+	wire [31:0] R2;
+
+	// Instantiate the Unit Under Test (UUT)
+	GRF uut (
+		.reset(reset), 
+		.clk(clk), 
+		.WE(WE), 
+		.PC(PC),
+		.A1(A1), 
+		.A2(A2), 
+		.A3(A3), 
+		.WD(WD), 
+		.R1(R1), 
+		.R2(R2)
+	);
+
+	initial begin
+		// Initialize Inputs
+		reset = 0;
+		clk = 0;
+		WE = 0;
+		A1 = 0;
+		A2 = 0;
+		A3 = 0;
+		WD = 0;
+		PC = 0;
+
+		// Wait 100 ns for global reset to finish
+		#100;
+      A1=3;
+		A2=4;
+		A3=5;
+		WD=10;
+		WE=1;
+		#100;
+		WE=0;
+		A1=5;
+		// Add stimulus here
+
+	end
+   always #5 clk=~clk;  
+endmodule
+
+
+
+================================================================================
+### 文件: Hazard_Cotroller.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date:    16:07:23 11/06/2024 
+// Design Name: 
+// Module Name:    Hazard_Cotroller 
+// Project Name: 
+// Target Devices: 
+// Tool versions: 
+// Description: 
+//
+// Dependencies: 
+//
+// Revision: 
+// Revision 0.01 - File Created
+// Additional Comments: 
+//
+//////////////////////////////////////////////////////////////////////////////////
+module Hazard_Cotroller(
+    input [4:0] RS,
+    input [4:0] RT,
+    input [4:0] rt,
+    input [4:0] rs,
+	 input [4:0] RSE,
+	 input [4:0] RTE,
+    input [4:0] WAE,
+    input [4:0] WAM,
+	 input [31:0] PCE,
+    input MemtoRegB,
+	 input MemtoRegM,
+    input RegWriteM,
+    input RegWriteW,
+	 input [2:0] n_sel,
+	 input [4:0] WAD,
+    output StallPC,
+    output StallF,
+    output CLRD,
+    output [1:0] ForwardA,
+    output [1:0] ForwardB,
+	 output [1:0] R1DMux,
+	 output [1:0] R2DMux,
+	 output DMMux,
+	 input[2:0] T_use_rs,
+	 input[2:0] T_use_rt,
+	 input[2:0] T_new,
+	 input[2:0] T_use_rsE,
+	 input[2:0] T_use_rtE,
+	 input[2:0] T_newE,
+	 input[2:0] T_newM,
+	 input Busy,
+	 input StartE,
+	 output start,
+	 input ID_EXLClr,
+	 input C0WriteE,
+	 input C0WriteM
+    );
+
+assign ForwardA=forwardA;
+assign ForwardB=forwardB;
+assign R1DMux=R1Mux;
+assign R2DMux=R2Mux;
+assign DMMux=dmMux;
+assign StallPC=Stall;
+assign StallF=Stall;
+assign CLRD=Stall;
+assign start=(StartE==1)?1:0;
+
+reg [1:0] forwardA;
+reg [1:0] forwardB;
+reg [1:0] R1Mux;
+reg [1:0] R2Mux;
+reg dmMux;
+reg Stall;
+
+initial begin
+forwardA=0;
+forwardB=0;
+R1Mux=0;
+R2Mux=0;
+dmMux=0;
+Stall=0;
+end
+
+always @(*) begin
+if(rs==WAE && RegWriteM==1 && rs!=0) begin
+forwardA=2;
+end
+else if(rs==WAM && RegWriteW==1 && rs!=0) begin
+forwardA=1;
+end
+else forwardA=0;
+ 
+if(rt==WAE && RegWriteM==1 && rt!=0) begin
+forwardB=2;
+end
+else if(rt==WAM && RegWriteW==1 && rt!=0) begin
+forwardB=1;
+end
+else forwardB=0;
+
+if(RS==WAE && RegWriteM==1 && RS!=0) begin
+R1Mux=1;
+end
+else if(RS==WAM && RegWriteW==1 && RS!=0) begin
+R1Mux=2;
+end
+else R1Mux=0;
+
+if(RT==WAE && RegWriteM==1 && RT!=0) begin
+R2Mux=1;
+end
+else if(RT==WAM && RegWriteW==1 && RT!=0) begin
+R2Mux=2;
+end
+else R2Mux=0;
+
+if(RTE==WAM && RegWriteW==1 && RTE!=0) begin
+dmMux=1;
+end
+else dmMux=0;
+
+if(Busy==1 || StartE==1) begin
+Stall=1;
+end
+else if((T_use_rs<T_newE&&RS==WAD)||(T_use_rt<T_newE&&RT==WAD)) begin
+Stall=1;
+end
+else if((T_use_rs<T_newM&&RS==WAE)||(T_use_rt<T_newM&&RT==WAE)) begin
+Stall=1;
+end
+else if(ID_EXLClr==1 && (C0WriteE||C0WriteM) ) begin
+Stall=1;
+end
+else Stall=0;
+
+end
+endmodule
+
+
+================================================================================
+### 文件: Hazard_Cotroller_tb.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+
+////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer:
+//
+// Create Date:   17:51:22 11/06/2024
+// Design Name:   Hazard_Cotroller
+// Module Name:   /home/co-eda/pipeline_cpu/Hazard_Cotroller_tb.v
+// Project Name:  pipeline_cpu
+// Target Device:  
+// Tool versions:  
+// Description: 
+//
+// Verilog Test Fixture created by ISE for module: Hazard_Cotroller
+//
+// Dependencies:
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+////////////////////////////////////////////////////////////////////////////////
+
+module Hazard_Cotroller_tb;
+
+	// Inputs
+	reg [4:0] RS;
+	reg [4:0] RT;
+	reg [4:0] rt;
+	reg [4:0] rs;
+	reg [4:0] WAE;
+	reg [4:0] WAM;
+	reg MemtoRegE;
+	reg RegWriteM;
+	reg RegWriteW;
+
+	// Outputs
+	wire StallPC;
+	wire StallF;
+	wire CLRD;
+	wire [1:0] ForwardA;
+	wire [1:0] ForwardB;
+
+	// Instantiate the Unit Under Test (UUT)
+	Hazard_Cotroller uut (
+		.RS(RS), 
+		.RT(RT), 
+		.rt(rt), 
+		.rs(rs), 
+		.WAE(WAE), 
+		.WAM(WAM), 
+		.MemtoRegE(MemtoRegE), 
+		.RegWriteM(RegWriteM), 
+		.RegWriteW(RegWriteW), 
+		.StallPC(StallPC), 
+		.StallF(StallF), 
+		.CLRD(CLRD), 
+		.ForwardA(ForwardA), 
+		.ForwardB(ForwardB)
+	);
+
+	initial begin
+		// Initialize Inputs
+		RS = 0;
+		RT = 0;
+		rt = 0;
+		rs = 0;
+		WAE = 0;
+		WAM = 0;
+		MemtoRegE = 0;
+		RegWriteM = 0;
+		RegWriteW = 0;
+
+		// Wait 100 ns for global reset to finish
+		#100;
+      RS=2;
+		WAE=2;
+		RegWriteM=1;
+		
+		#100;
+		MemtoRegE=1;
+		// Add stimulus here
+
+	end
+      
+endmodule
+
+
+
+================================================================================
+### 文件: ID_EX.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date:    19:08:41 11/05/2024 
+// Design Name: 
+// Module Name:    ID_EX 
+// Project Name: 
+// Target Devices: 
+// Tool versions: 
+// Description: 
+//
+// Dependencies: 
+//
+// Revision: 
+// Revision 0.01 - File Created
+// Additional Comments: 
+//
+//////////////////////////////////////////////////////////////////////////////////
+module ID_EX(
+	 input CLR,
+    input MemtoReg,
+    input MemWrite,
+    input RegDst,
+    input RegWrite,
+    input [2:0] ALUctr,
+    input ALUSrc,
+	 input [2:0] MemOp,
+	 output [2:0] MemOpE,
+    output MemtoRegE,
+    output RegWriteE,
+    output MemWriteE,
+    output [2:0] ALUctrE,
+    output ALUSrcE,
+    output RegDstE,
+    input [31:0] PCF,
+    output [31:0] PCD,
+    input[31:0] R1,
+    input[31:0] R2,
+    output[31:0] R1D,
+    output[31:0] R2D,
+    input [31:0] ext_immediate,
+    output [31:0] IMD,
+    input clk,
+    input reset,
+    input JAL_PC,
+    output JAL_PCE,
+	 input[4:0] RS,
+	 output[4:0] rs,
+	 input[4:0] RT,
+	 output[4:0] rt,
+	 input[4:0] RD,
+	 output[4:0] rd,
+	 input [2:0] T_use_rt,
+	 input [2:0] T_use_rs,
+	 input [2:0] T_new,
+	 input [4:0] WAF,
+	 output [4:0] WAD,
+	 output [2:0] T_use_rsE,
+	 output [2:0] T_use_rtE,
+	 output [2:0] T_newE,
+	 input [3:0] Multop,
+	 output [3:0] MultopE,
+	 input Start,
+	 output StartE,
+	 input [4:0] ExcCodeD,
+	 output [4:0] ExcCodeE,
+	 input C0Write,
+	 output C0WriteE,
+	 input BDIn,
+	 output BDInE,
+	 input [2:0] nPC_sel,
+	 output [2:0] nPC_selE,
+	 input Req,
+	 input ID_EXLClr,
+	 output ID_EXLClrE,
+	 input [31:0] instrD,
+	 output [31:0] instrE
+    );
+
+reg memtoreg;
+reg memwrite;
+reg regdst;
+reg regwrite;
+reg[2:0] aluctr;
+reg alusrc;
+reg jal;
+reg[31:0] imd;
+reg[31:0] r1d;
+reg[31:0] r2d;
+reg[31:0] pc;
+reg[4:0] Rs;
+reg[4:0] Rt;
+reg[4:0] Rd;
+reg[2:0] t_use_rs;
+reg[2:0] t_use_rt;
+reg[2:0] t_new;
+reg [4:0] wad;
+reg [3:0] multop;
+reg start;
+reg [2:0] memop;
+reg [4:0] exccode;
+reg c0write;
+reg bdin;
+reg [2:0] npc_sel;
+reg id_exlclr;
+reg [31:0] instr;
+
+assign MemtoRegE=memtoreg;
+assign MemWriteE=memwrite;
+assign RegDstE=regdst;
+assign RegWriteE=regwrite;
+assign ALUctrE=aluctr;
+assign ALUSrcE=alusrc;
+assign JAL_PCE=jal;
+assign IMD=imd;
+assign R1D=r1d;
+assign R2D=r2d;
+assign PCD=pc;
+assign rs=Rs;
+assign rt=Rt;
+assign rd=Rd;
+assign T_use_rsE=t_use_rs-1;
+assign T_use_rtE=t_use_rt-1;
+assign T_newE=(t_new==0)?0:t_new-1;
+assign WAD=wad;
+assign MultopE=multop;
+assign StartE=start;
+assign MemOpE=memop;
+assign ExcCodeE=exccode;
+assign C0WriteE=c0write;
+assign BDInE=bdin;
+assign nPC_selE=npc_sel;
+assign ID_EXLClrE=id_exlclr;
+assign instrE=instr;
+
+always @(posedge clk or posedge reset) begin
+if(reset) begin
+memtoreg<=0;
+memwrite<=0;
+regdst<=0;
+regwrite<=0;
+aluctr<=0;
+alusrc<=0;
+jal<=0;
+imd<=0;
+r1d<=0;
+r2d<=0;
+pc<=0;
+Rs<=0;
+Rt<=0;
+Rd<=0;
+t_use_rs<=4;
+t_use_rt<=4;
+t_new<=0;
+wad<=0;
+multop<=0;
+start<=0;
+memop<=0;
+exccode<=0;
+c0write<=0;
+bdin<=0;
+npc_sel<=0;
+id_exlclr<=0;
+instr<=0;
+end
+else if(Req) begin
+memtoreg<=0;
+memwrite<=0;
+regdst<=0;
+regwrite<=0;
+aluctr<=0;
+alusrc<=0;
+jal<=0;
+imd<=0;
+r1d<=0;
+r2d<=0;
+pc<=32'h0000_4180;
+Rs<=0;
+Rt<=0;
+Rd<=0;
+t_use_rs<=4;
+t_use_rt<=4;
+t_new<=0;
+wad<=0;
+multop<=0;
+start<=0;
+memop<=0;
+exccode<=0;
+c0write<=0;
+bdin<=0;
+npc_sel<=0;
+id_exlclr<=0;
+instr<=0;
+end
+else if(CLR) begin
+memtoreg<=0;
+memwrite<=0;
+regdst<=0;
+regwrite<=0;
+aluctr<=0;
+alusrc<=0;
+jal<=0;
+imd<=0;
+r1d<=0;
+r2d<=0;
+Rs<=0;
+Rt<=0;
+Rd<=0;
+t_use_rs<=4;
+t_use_rt<=4;
+t_new<=0;
+wad<=0;
+bdin<=BDIn;
+pc<=PCF;
+multop<=0;
+start<=0;
+memop<=0;
+exccode<=0;
+c0write<=0;
+npc_sel<=0;
+id_exlclr<=0;
+instr<=0;
+end
+else begin
+if(ExcCodeD!=0) begin
+memtoreg<=0;
+memwrite<=0;
+regdst<=0;
+regwrite<=0;
+aluctr<=0;
+alusrc<=0;
+jal<=0;
+imd<=0;
+r1d<=0;
+r2d<=0;
+pc<=PCF;
+Rs<=0;
+Rt<=0;
+Rd<=0;
+t_use_rs<=4;
+t_use_rt<=4;
+t_new<=0;
+wad<=0;
+multop<=0;
+start<=0;
+memop<=0;
+exccode<=ExcCodeD;
+c0write<=0;
+bdin<=BDIn;
+npc_sel<=0;
+id_exlclr<=0;
+instr<=0;
+end
+else begin
+memtoreg<=MemtoReg;
+memwrite<=MemWrite;
+regdst<=RegDst;
+regwrite<=RegWrite;
+aluctr<=ALUctr;
+alusrc<=ALUSrc;
+jal<=JAL_PC;
+imd<=ext_immediate;
+r1d<=R1;
+r2d<=R2;
+pc<=PCF;
+Rs<=RS;
+Rt<=RT;
+Rd<=RD;
+t_use_rs<=T_use_rs;
+t_use_rt<=T_use_rt;
+t_new<=T_new;
+wad<=WAF;
+multop<=Multop;
+start<=Start;
+memop<=MemOp;
+exccode<=ExcCodeD;
+c0write<=C0Write;
+bdin<=BDIn;
+npc_sel<=nPC_sel;
+id_exlclr<=ID_EXLClr;
+instr<=instrD;
+end
+end
+end
+endmodule
+
+
+================================================================================
+### 文件: ID_EX_tb.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+
+////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer:
+//
+// Create Date:   18:05:21 11/06/2024
+// Design Name:   ID_EX
+// Module Name:   /home/co-eda/pipeline_cpu/ID_EX_tb.v
+// Project Name:  pipeline_cpu
+// Target Device:  
+// Tool versions:  
+// Description: 
+//
+// Verilog Test Fixture created by ISE for module: ID_EX
+//
+// Dependencies:
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+////////////////////////////////////////////////////////////////////////////////
+
+module ID_EX_tb;
+
+	// Inputs
+	reg CLR;
+	reg MemtoReg;
+	reg MemWrite;
+	reg RegDst;
+	reg RegWrite;
+	reg [2:0] ALUctr;
+	reg ALUSrc;
+	reg PCF;
+	reg [31:0] R1;
+	reg [31:0] R2;
+	reg [31:0] ext_immediate;
+	reg clk;
+	reg reset;
+	reg JAL_PC;
+	reg [4:0] RS;
+	reg [4:0] RT;
+	reg [4:0] RD;
+
+	// Outputs
+	wire MemtoRegE;
+	wire RegWriteE;
+	wire MemWriteE;
+	wire RegDstE;
+	wire PCD;
+	wire [31:0] R1D;
+	wire [31:0] R2D;
+	wire [31:0] IMD;
+	wire JAL_PCE;
+	wire [4:0] rs;
+	wire [4:0] rt;
+	wire [4:0] rd;
+
+	// Bidirs
+	wire [2:0] ALUctrE;
+	wire ALUSrcE;
+
+	// Instantiate the Unit Under Test (UUT)
+	ID_EX uut (
+		.CLR(CLR), 
+		.MemtoReg(MemtoReg), 
+		.MemWrite(MemWrite), 
+		.RegDst(RegDst), 
+		.RegWrite(RegWrite), 
+		.ALUctr(ALUctr), 
+		.ALUSrc(ALUSrc), 
+		.MemtoRegE(MemtoRegE), 
+		.RegWriteE(RegWriteE), 
+		.MemWriteE(MemWriteE), 
+		.ALUctrE(ALUctrE), 
+		.ALUSrcE(ALUSrcE), 
+		.RegDstE(RegDstE), 
+		.PCF(PCF), 
+		.PCD(PCD), 
+		.R1(R1), 
+		.R2(R2), 
+		.R1D(R1D), 
+		.R2D(R2D), 
+		.ext_immediate(ext_immediate), 
+		.IMD(IMD), 
+		.clk(clk), 
+		.reset(reset), 
+		.JAL_PC(JAL_PC), 
+		.JAL_PCE(JAL_PCE), 
+		.RS(RS), 
+		.rs(rs), 
+		.RT(RT), 
+		.rt(rt), 
+		.RD(RD), 
+		.rd(rd)
+	);
+
+	initial begin
+		// Initialize Inputs
+		CLR = 0;
+		MemtoReg = 0;
+		MemWrite = 0;
+		RegDst = 0;
+		RegWrite = 0;
+		ALUctr = 0;
+		ALUSrc = 0;
+		PCF = 0;
+		R1 = 0;
+		R2 = 0;
+		ext_immediate = 0;
+		clk = 0;
+		reset = 0;
+		JAL_PC = 0;
+		RS = 0;
+		RT = 0;
+		RD = 0;
+
+		// Wait 100 ns for global reset to finish
+		#100;
+        
+		// Add stimulus here
+
+	end
+      
+endmodule
+
+
+
+================================================================================
+### 文件: IE_IM.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date:    09:10:31 11/06/2024 
+// Design Name: 
+// Module Name:    IE_IM 
+// Project Name: 
+// Target Devices: 
+// Tool versions: 
+// Description: 
+//
+// Dependencies: 
+//
+// Revision: 
+// Revision 0.01 - File Created
+// Additional Comments: 
+//
+//////////////////////////////////////////////////////////////////////////////////
+module IE_IM(
+    input reset,
+    input clk,
+    input MemtoRegE,
+    input MemWriteE,
+    input RegWriteE,
+    input [31:0] result,
+    input [31:0] WDD,
+    input [4:0] WAD,
+	 input [4:0] rs,
+	 input [4:0] rt,
+	 input [4:0] rd,
+	 output [4:0] RSE,
+	 output [4:0] RTE,
+	 output [4:0] RDE,
+    output MemtoRegM,
+    output RegWriteM,
+    output MemWriteM,
+    output [31:0] AOE,
+    output [31:0] WDE,
+    output [4:0] WAE,
+    input [31:0] PCD,
+    output [31:0] PCE,
+	 input [2:0] T_newE,
+	 output [2:0] T_newM,
+	 input [2:0] MemOpE,
+	 output [2:0] MemOpM,
+	 input [4:0] ExcCodeE,
+	 output [4:0] ExcCodeM,
+	 input C0WriteE,
+	 output C0WriteM,
+	 input BDInE,
+	 output BDInM,
+	 input Req,
+	 input ID_EXLClrE,
+	 output ID_EXLClrM,
+	 input [31:0] instrE,
+	 output [31:0] instrM
+    );
+
+reg memtoreg;
+reg memwrite;
+reg regwrite;
+reg[31:0] aoe;
+reg[31:0] wde;
+reg[4:0] wae;
+reg[31:0] pc;
+reg[4:0] Rs;
+reg[4:0] Rt;
+reg[4:0] Rd;
+reg[2:0] t_new;
+reg[2:0] memope;
+reg[4:0] exccode;
+reg c0write;
+reg bdin;
+reg id_exlclr;
+reg [31:0] instr;
+
+assign MemtoRegM=memtoreg;
+assign MemWriteM=memwrite;
+assign RegWriteM=regwrite;
+assign AOE=aoe;
+assign WDE=wde;
+assign WAE=wae;
+assign PCE=pc;
+assign RSE=Rs;
+assign RTE=Rt;
+assign RDE=Rd;
+assign T_newM=(t_new==0)?0:t_new-1;
+assign MemOpM=memope;
+assign ExcCodeM=exccode;
+assign C0WriteM=c0write;
+assign BDInM=bdin;
+assign ID_EXLClrM=id_exlclr;
+assign instrM=instr;
+
+always @(posedge clk or posedge reset) begin
+if(reset) begin
+memtoreg<=0;
+memwrite<=0;
+regwrite<=0;
+aoe<=0;
+wde<=0;
+wae<=0;
+pc<=0;
+Rs<=0;
+Rt<=0;
+Rd<=0;
+t_new<=0;
+memope<=0;
+exccode<=0;
+c0write<=0;
+bdin<=0;
+id_exlclr<=0;
+instr<=0;
+end
+else if(Req) begin
+memtoreg<=0;
+memwrite<=0;
+regwrite<=0;
+aoe<=0;
+wde<=0;
+wae<=0;
+pc<=32'h0000_4180;
+Rs<=0;
+Rt<=0;
+Rd<=0;
+t_new<=0;
+memope<=0;
+exccode<=0;
+c0write<=0;
+bdin<=0;
+id_exlclr<=0;
+instr<=0;
+end
+else begin
+if(ExcCodeE!=0) begin
+memtoreg<=0;
+memwrite<=0;
+regwrite<=0;
+aoe<=0;
+wde<=0;
+wae<=0;
+pc<=PCD;
+Rs<=0;
+Rt<=0;
+Rd<=0;
+t_new<=0;
+memope<=0;
+exccode<=ExcCodeE;
+c0write<=0;
+bdin<=BDInE;
+id_exlclr<=0;
+instr<=0;
+end
+else begin
+memtoreg<=MemtoRegE;
+memwrite<=MemWriteE;
+regwrite<=RegWriteE;
+aoe<=result;
+wde<=WDD;
+wae<=WAD;
+pc<=PCD;
+Rs<=rs;
+Rt<=rt;
+Rd<=rd;
+t_new<=T_newE;
+memope<=MemOpE;
+exccode<=ExcCodeE;
+c0write<=C0WriteE;
+bdin<=BDInE;
+id_exlclr<=ID_EXLClrE;
+instr<=instrE;
+end
+end
+end
+endmodule
+
+
+================================================================================
+### 文件: IE_IM_tb.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+
+////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer:
+//
+// Create Date:   19:19:46 11/06/2024
+// Design Name:   IE_IM
+// Module Name:   /home/co-eda/pipeline_cpu/IE_IM_tb.v
+// Project Name:  pipeline_cpu
+// Target Device:  
+// Tool versions:  
+// Description: 
+//
+// Verilog Test Fixture created by ISE for module: IE_IM
+//
+// Dependencies:
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+////////////////////////////////////////////////////////////////////////////////
+
+module IE_IM_tb;
+
+	// Inputs
+	reg reset;
+	reg clk;
+	reg MemtoRegE;
+	reg MemWriteE;
+	reg RegWriteE;
+	reg [31:0] result;
+	reg [31:0] WDD;
+	reg [4:0] WAD;
+	reg [31:0] PCD;
+
+	// Outputs
+	wire MemtoRegM;
+	wire RegWriteM;
+	wire MemWriteM;
+	wire [31:0] AOE;
+	wire [31:0] WDE;
+	wire [4:0] WAE;
+	wire [31:0] PCE;
+
+	// Instantiate the Unit Under Test (UUT)
+	IE_IM uut (
+		.reset(reset), 
+		.clk(clk), 
+		.MemtoRegE(MemtoRegE), 
+		.MemWriteE(MemWriteE), 
+		.RegWriteE(RegWriteE), 
+		.result(result), 
+		.WDD(WDD), 
+		.WAD(WAD), 
+		.MemtoRegM(MemtoRegM), 
+		.RegWriteM(RegWriteM), 
+		.MemWriteM(MemWriteM), 
+		.AOE(AOE), 
+		.WDE(WDE), 
+		.WAE(WAE), 
+		.PCD(PCD), 
+		.PCE(PCE)
+	);
+
+	initial begin
+		// Initialize Inputs
+		reset = 0;
+		clk = 0;
+		MemtoRegE = 0;
+		MemWriteE = 0;
+		RegWriteE = 0;
+		result = 0;
+		WDD = 0;
+		WAD = 0;
+		PCD = 0;
+
+		// Wait 100 ns for global reset to finish
+		#100;
+        
+		// Add stimulus here
+
+	end
+      
+endmodule
+
+
+
+================================================================================
+### 文件: IFU.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date:    20:07:51 10/29/2024 
+// Design Name: 
+// Module Name:    IFU 
+// Project Name: 
+// Target Devices: 
+// Tool versions: 
+// Description: 
+//
+// Dependencies: 
+//
+// Revision: 
+// Revision 0.01 - File Created
+// Additional Comments: 
+//
+//////////////////////////////////////////////////////////////////////////////////
+module IFU(
+    input [2:0] nPC_sel,
+    input [15:0] sel_PC,
+	 input [31:0] jr_PC,
+	 input [25:0] instr_index, 
+    input reset,
+    input clk,
+	 input EN,
+	 input Req,
+	 input [31:0] EPCOut,
+	 output [31:0] PC,
+	 output [4:0] ExcCode,
+	 input ID_EXLClr
+    );	 
+
+wire[31:0] pre_pc;
+reg[31:0] pc;
+
+PC_trans trans (
+		.PC(pc), 
+		.sel_PC(sel_PC), 
+		.nPC_sel(nPC_sel),
+		.Req(Req),
+		.jr_PC(jr_PC),
+		.instr_index(instr_index),
+		.next_PC(pre_pc),
+		.EPCOut(EPCOut),
+		.ID_EXLClr(ID_EXLClr)
+	);
+	
+assign PC=pc+32'h0000_3000;	
+assign ExcCode=( pc%4!=0 || pc<32'h0000_0000 || pc> 32'h0000_3ffc )?4:0;
+initial begin
+pc=32'h0000_0000;
+end
+
+always @(posedge clk or posedge reset) begin
+if(reset) begin
+pc<=32'h0000_0000;
+end
+else if(Req) begin
+pc<=32'h0000_4180-32'h0000_3000;
+end
+else if(ID_EXLClr) begin
+pc<=EPCOut-32'h0000_3000;
+end
+else if(EN) begin
+pc<=pre_pc;
+end
+else pc<=pc;
+end
+
+endmodule
+
+
+================================================================================
+### 文件: IFU_tb.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+
+////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer:
+//
+// Create Date:   00:10:09 10/31/2024
+// Design Name:   IFU
+// Module Name:   /home/co-eda/single_cpu/IFU_tb.v
+// Project Name:  single_cpu
+// Target Device:  
+// Tool versions:  
+// Description: 
+//
+// Verilog Test Fixture created by ISE for module: IFU
+//
+// Dependencies:
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+////////////////////////////////////////////////////////////////////////////////
+
+module IFU_tb;
+
+	// Inputs
+	reg [2:0] nPC_sel;
+	reg [15:0] sel_PC;
+	reg [31:0] jr_PC;
+	reg [25:0] instr_index;
+	reg reset;
+	reg clk;
+	reg EN;
+
+	// Outputs
+	wire [31:0] PC;
+	wire [5:0] ExcCode;
+
+	// Instantiate the Unit Under Test (UUT)
+	IFU uut (
+		.nPC_sel(nPC_sel), 
+		.sel_PC(sel_PC), 
+		.jr_PC(jr_PC), 
+		.instr_index(instr_index), 
+		.reset(reset), 
+		.clk(clk), 
+		.PC(PC),
+		.EN(EN),
+		.ExcCode(ExcCode)
+	);
+
+	initial begin
+		// Initialize Inputs
+		nPC_sel = 0;
+		sel_PC = 0;
+		jr_PC = 0;
+		instr_index = 0;
+		reset = 0;
+		clk = 0;
+		EN = 1;
+		
+		// Wait 100 ns for global reset to finish
+		#100;
+		nPC_sel=3;
+		jr_PC = 32'h0000_305c;
+		// Add stimulus here
+
+	end
+   always #5 clk=~clk;  
+endmodule
+
+
+
+================================================================================
+### 文件: IF_ID.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date:    16:42:53 11/05/2024 
+// Design Name: 
+// Module Name:    IF_ID 
+// Project Name: 
+// Target Devices: 
+// Tool versions: 
+// Description: 
+//
+// Dependencies: 
+//
+// Revision: 
+// Revision 0.01 - File Created
+// Additional Comments: 
+//
+//////////////////////////////////////////////////////////////////////////////////
+module IF_ID(
+    input reset,
+    input clk,
+    input [31:0] instr,
+    input [31:0] PC,
+    output [31:0] next_instr,
+    input [31:0] next_PC,
+	 input [4:0] ExcCode,
+	 output [4:0] ExcCodeF,
+	 input EN,
+	 input BDIn,
+	 output BDInD,
+	 input Req,
+	 input ID_EXLClr,
+	 input [31:0] EPCOut
+    );
+
+reg[31:0] pc_reg;
+reg[31:0] instr_reg;
+reg[4:0] ExcCode_reg;
+reg bdin;
+
+assign next_instr=instr_reg;
+assign next_PC=pc_reg;
+assign ExcCodeF=ExcCode_reg;
+assign BDInD=bdin;
+
+always @(posedge clk or posedge reset) begin
+if(reset) begin
+pc_reg<=32'h0000_3000;
+instr_reg<=0;
+ExcCode_reg<=0;
+bdin<=0;
+end
+else if(Req) begin
+pc_reg<=32'h0000_4180;
+instr_reg<=0;
+ExcCode_reg<=0;
+bdin<=0;
+end
+else if(EN) begin
+if(ID_EXLClr) begin
+pc_reg<=EPCOut;
+instr_reg<=0;
+ExcCode_reg<=0;
+end
+else if(ExcCode!=0) begin
+pc_reg<=PC;
+instr_reg<=0;
+ExcCode_reg<=ExcCode;
+bdin<=BDIn;
+end
+else begin
+pc_reg<=PC;
+instr_reg<=instr;
+ExcCode_reg<=ExcCode;
+bdin<=BDIn;
+end
+end
+else ExcCode_reg<=0;
+end
+
+endmodule
+
+
+================================================================================
+### 文件: IF_ID_tb.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+
+////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer:
+//
+// Create Date:   17:39:18 11/06/2024
+// Design Name:   IF_ID
+// Module Name:   /home/co-eda/pipeline_cpu/IF_ID_tb.v
+// Project Name:  pipeline_cpu
+// Target Device:  
+// Tool versions:  
+// Description: 
+//
+// Verilog Test Fixture created by ISE for module: IF_ID
+//
+// Dependencies:
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+////////////////////////////////////////////////////////////////////////////////
+
+module IF_ID_tb;
+
+	// Inputs
+	reg reset;
+	reg clk;
+	reg [31:0] instr;
+	reg [31:0] PC;
+	reg [31:0] next_PC;
+	reg EN;
+
+	// Outputs
+	wire [31:0] next_instr;
+
+	// Instantiate the Unit Under Test (UUT)
+	IF_ID uut (
+		.reset(reset), 
+		.clk(clk), 
+		.instr(instr), 
+		.PC(PC), 
+		.next_instr(next_instr), 
+		.next_PC(next_PC), 
+		.EN(EN)
+	);
+
+	initial begin
+		// Initialize Inputs
+		reset = 0;
+		clk = 0;
+		instr = 0;
+		PC = 0;
+		next_PC = 0;
+		EN = 0;
+
+		// Wait 100 ns for global reset to finish
+		#100;
+        
+		// Add stimulus here
+
+	end
+      
+endmodule
+
+
+
+================================================================================
+### 文件: IM.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date:    19:29:47 10/29/2024 
+// Design Name: 
+// Module Name:    IM 
+// Project Name: 
+// Target Devices: 
+// Tool versions: 
+// Description: 
+//
+// Dependencies: 
+//
+// Revision: 
+// Revision 0.01 - File Created
+// Additional Comments: 
+//
+//////////////////////////////////////////////////////////////////////////////////
+module IM(
+    input [31:0] PC,
+    output [31:0] instr
+    );
+
+reg[31:0] ROM[0:4095];
+assign instr=ROM[(PC>>2)];
+
+integer i;
+
+initial begin
+$readmemh("code.txt",ROM);
+end
+
+endmodule
+
+
+================================================================================
+### 文件: IM_IW.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date:    09:23:49 11/06/2024 
+// Design Name: 
+// Module Name:    IM_IW 
+// Project Name: 
+// Target Devices: 
+// Tool versions: 
+// Description: 
+//
+// Dependencies: 
+//
+// Revision: 
+// Revision 0.01 - File Created
+// Additional Comments: 
+//
+//////////////////////////////////////////////////////////////////////////////////
+module IM_IW(
+    input reset,
+    input clk,
+    input MemtoRegM,
+    input RegWriteM,
+    output MemtoRegW,
+    output RegWriteW,
+    input [31:0] out,
+    output [31:0] MDM,
+    input [31:0] AOE,
+    output [31:0] AOM,
+    input [4:0] WAE,
+    output [4:0] WAM,
+	 input[31:0] PCE,
+	 output[31:0] PCM,
+	 input Req,
+	 input [31:0] instrM,
+	 output [31:0] instrW
+    );
+
+reg memtoreg;
+reg regwrite;
+reg[31:0] mdm;
+reg[31:0] aom;
+reg[4:0] wam;
+reg[31:0] pc;
+reg [31:0] instr;
+
+assign MemtoRegW=memtoreg;
+assign RegWriteW=regwrite;
+assign MDM=mdm;
+assign AOM=aom;
+assign WAM=wam;
+assign PCM=pc;
+assign instrW=instr;
+
+always @(posedge clk or posedge reset)begin
+if(reset) begin
+memtoreg<=0;
+regwrite<=0;
+mdm<=0;
+aom<=0;
+wam<=0;
+pc<=0;
+instr<=0;
+end
+else if(Req) begin
+memtoreg<=0;
+regwrite<=0;
+mdm<=0;
+aom<=0;
+wam<=0;
+pc<=0;
+instr<=0;
+end
+else begin
+memtoreg<=MemtoRegM;
+regwrite<=RegWriteM;
+mdm<=out;
+aom<=AOE;
+wam<=WAE;
+pc<=PCE;
+instr<=instrM;
+end
+end
+endmodule
+
+
+================================================================================
+### 文件: IM_IW_tb.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+
+////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer:
+//
+// Create Date:   19:40:10 11/06/2024
+// Design Name:   IM_IW
+// Module Name:   /home/co-eda/pipeline_cpu/IM_IW_tb.v
+// Project Name:  pipeline_cpu
+// Target Device:  
+// Tool versions:  
+// Description: 
+//
+// Verilog Test Fixture created by ISE for module: IM_IW
+//
+// Dependencies:
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+////////////////////////////////////////////////////////////////////////////////
+
+module IM_IW_tb;
+
+	// Inputs
+	reg reset;
+	reg clk;
+	reg MemtoRegM;
+	reg RegWriteM;
+	reg [31:0] out;
+	reg [31:0] AOE;
+	reg [4:0] WAE;
+	reg [31:0] PCE;
+
+	// Outputs
+	wire MemtoRegW;
+	wire RegWriteW;
+	wire [31:0] MDM;
+	wire [31:0] AOM;
+	wire [4:0] WAM;
+	wire [31:0] PCM;
+
+	// Instantiate the Unit Under Test (UUT)
+	IM_IW uut (
+		.reset(reset), 
+		.clk(clk), 
+		.MemtoRegM(MemtoRegM), 
+		.RegWriteM(RegWriteM), 
+		.MemtoRegW(MemtoRegW), 
+		.RegWriteW(RegWriteW), 
+		.out(out), 
+		.MDM(MDM), 
+		.AOE(AOE), 
+		.AOM(AOM), 
+		.WAE(WAE), 
+		.WAM(WAM), 
+		.PCE(PCE), 
+		.PCM(PCM)
+	);
+
+	initial begin
+		// Initialize Inputs
+		reset = 0;
+		clk = 0;
+		MemtoRegM = 0;
+		RegWriteM = 0;
+		out = 0;
+		AOE = 0;
+		WAE = 0;
+		PCE = 0;
+
+		// Wait 100 ns for global reset to finish
+		#100;
+        
+		// Add stimulus here
+
+	end
+      
+endmodule
+
+
+
+================================================================================
+### 文件: IM_tb.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+
+////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer:
+//
+// Create Date:   19:52:35 10/29/2024
+// Design Name:   IM
+// Module Name:   /home/co-eda/single_cpu/IM_tb.v
+// Project Name:  single_cpu
+// Target Device:  
+// Tool versions:  
+// Description: 
+//
+// Verilog Test Fixture created by ISE for module: IM
+//
+// Dependencies:
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+////////////////////////////////////////////////////////////////////////////////
+
+module IM_tb;
+
+	// Inputs
+	reg [31:0] PC;
+
+	// Outputs
+	wire [31:0] instr;
+
+	// Instantiate the Unit Under Test (UUT)
+	IM uut (
+		.PC(PC), 
+		.instr(instr)
+	);
+
+	initial begin
+		// Initialize Inputs
+		PC = 0;
+
+		// Wait 100 ns for global reset to finish
+		#100;
+      PC=PC+4;  
+		// Add stimulus here
+
+	end
+      
+endmodule
+
+
+
+================================================================================
+### 文件: mips.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date:    12:13:29 11/29/2024 
+// Design Name: 
+// Module Name:    mips 
+// Project Name: 
+// Target Devices: 
+// Tool versions: 
+// Description: 
+//
+// Dependencies: 
+//
+// Revision: 
+// Revision 0.01 - File Created
+// Additional Comments: 
+//
+//////////////////////////////////////////////////////////////////////////////////
+module mips(
+    input clk,                    // ʱ���ź�
+    input reset,                  // ͬ����λ�ź�
+    input interrupt,              // �ⲿ�ж��ź�
+    output [31:0] macroscopic_pc, // ��� PC
+
+    output [31:0] i_inst_addr,    // IM ��ȡ��ַ��ȡָ PC��
+    input  [31:0] i_inst_rdata,   // IM ��ȡ����
+
+    output [31:0] m_data_addr,    // DM ��д��ַ
+    input  [31:0] m_data_rdata,   // DM ��ȡ����
+    output [31:0] m_data_wdata,   // DM ��д������
+    output [3 :0] m_data_byteen,  // DM �ֽ�ʹ���ź�
+
+    output [31:0] m_int_addr,     // �жϷ�������д���ַ
+    output [3 :0] m_int_byteen,   // �жϷ������ֽ�ʹ���ź�
+
+    output [31:0] m_inst_addr,    // M �� PC
+
+    output w_grf_we,              // GRF дʹ���ź�
+    output [4 :0] w_grf_addr,     // GRF ��д��Ĵ������
+    output [31:0] w_grf_wdata,    // GRF ��д������
+
+    output [31:0] w_inst_addr     // W �� PC
+);
+
+	wire [31:0] cpu_readdata;
+	wire cpu_we;
+	wire [31:0] cpu_data_addr;
+	wire [31:0] cpu_data_wdata;
+	wire [31:0] cpu_data_rdata;
+	wire [3:0] cpu_data_byteen;
+	wire [31:2] timer0_addr;
+	wire [31:0] timer0_writedata;
+	wire [31:0] timer0_readdata;
+	wire timer0_we;
+	wire [31:2] timer1_addr;
+	wire [31:0] timer1_writedata;
+	wire [31:0] timer1_readdata;
+	wire timer1_we;
+	
+	wire IRQ0;
+	wire IRQ1;
+	wire [5:0] HWInt;
+	
+assign macroscopic_pc=m_inst_addr;
+
+Bridge bridge (
+		.cpu_addr(cpu_data_addr), 
+		.cpu_writedata(cpu_data_wdata), 
+		.cpu_readdata(cpu_data_rdata), 
+		.cpu_we(cpu_we), 
+		.cpu_be(cpu_data_byteen), 
+		.mem_addr(m_data_addr), 
+		.mem_writedata(m_data_wdata), 
+		.mem_readdata(m_data_rdata), 
+		.mem_be(m_data_byteen), 
+		.timer0_addr(timer0_addr), 
+		.timer0_writedata(timer0_writedata), 
+		.timer0_readdata(timer0_readdata), 
+		.timer0_we(timer0_we), 
+		.timer1_addr(timer1_addr), 
+		.timer1_writedata(timer1_writedata), 
+		.timer1_readdata(timer1_readdata), 
+		.timer1_we(timer1_we), 
+		.int_addr(m_int_addr), 
+		.int_be(m_int_byteen)
+	);
+
+	CPU cpu (
+		.clk(clk), 
+		.reset(reset), 
+		.i_inst_rdata(i_inst_rdata), 
+		.m_data_rdata(cpu_data_rdata), 
+		.i_inst_addr(i_inst_addr), 
+		.m_data_addr(cpu_data_addr), 
+		.m_data_wdata(cpu_data_wdata), 
+		.m_data_byteen(cpu_data_byteen), 
+		.m_inst_addr(m_inst_addr), 
+		.w_grf_we(w_grf_we), 
+		.w_grf_addr(w_grf_addr), 
+		.w_grf_wdata(w_grf_wdata), 
+		.w_inst_addr(w_inst_addr),
+		.cpu_we(cpu_we),
+		.HWInt(HWInt)
+	);
+	
+		TC time0 (
+		.clk(clk), 
+		.reset(reset), 
+		.Addr(timer0_addr), 
+		.WE(timer0_we), 
+		.Din(timer0_writedata), 
+		.Dout(timer0_readdata), 
+		.IRQ(IRQ0)
+	);
+	
+		TC time1 (
+		.clk(clk), 
+		.reset(reset), 
+		.Addr(timer1_addr), 
+		.WE(timer1_we), 
+		.Din(timer1_writedata), 
+		.Dout(timer1_readdata), 
+		.IRQ(IRQ1)
+	);
+	
+assign HWInt={0,0,0,interrupt,IRQ1,IRQ0};
+endmodule
+
+
+================================================================================
+### 文件: mips_tb.v ###
+================================================================================
+
+`timescale 1ns/1ps
+
+module tb;
+
+	reg clk;
+	reg reset;
+	reg interrupt;
+
+	wire [31:0] macroscopic_pc;
+
+	wire [31:0] i_inst_addr;
+	wire [31:0] i_inst_rdata;
+
+	wire [31:0] m_data_addr;
+	wire [31:0] m_data_rdata;
+	wire [31:0] m_data_wdata;
+	wire [3 :0] m_data_byteen;
+
+	wire [31:0] m_int_addr;
+	wire [3 :0] m_int_byteen;
+
+	wire [31:0] m_inst_addr;
+
+	wire		w_grf_we;
+	wire [4 :0] w_grf_addr;
+	wire [31:0] w_grf_wdata;
+
+	wire [31:0] w_inst_addr;
+
+	mips uut(
+		.clk(clk),
+		.reset(reset),
+		.interrupt(interrupt),
+		.macroscopic_pc(macroscopic_pc),
+
+		.i_inst_addr(i_inst_addr),
+		.i_inst_rdata(i_inst_rdata),
+
+		.m_data_addr(m_data_addr),
+		.m_data_rdata(m_data_rdata),
+		.m_data_wdata(m_data_wdata),
+		.m_data_byteen(m_data_byteen),
+
+		.m_int_addr(m_int_addr),
+		.m_int_byteen(m_int_byteen),
+
+		.m_inst_addr(m_inst_addr),
+
+		.w_grf_we(w_grf_we),
+		.w_grf_addr(w_grf_addr),
+		.w_grf_wdata(w_grf_wdata),
+
+		.w_inst_addr(w_inst_addr)
+	);
+
+	initial begin
+		clk <= 0;
+		reset <= 1;
+		interrupt <= 0;
+		#20 reset <= 0;
+	end
+
+	integer i;
+	reg [31:0] fixed_addr;
+	reg [31:0] fixed_wdata;
+	reg [31:0] data[0:4095];
+	reg [31:0] inst[0:5119];
+
+	// ----------- For Instructions -----------
+
+	assign m_data_rdata = data[(m_data_addr >> 2) % 5120];
+	assign i_inst_rdata = inst[((i_inst_addr - 32'h3000) >> 2) % 5120];
+
+	initial begin
+		$readmemh("code.txt", inst);
+		for (i = 0; i < 5120; i = i + 1) data[i] <= 0;
+	end
+
+	// ----------- For Data Memory -----------
+
+	always @(*) begin
+		fixed_wdata = data[(m_data_addr >> 2) & 4095];
+		fixed_addr = m_data_addr & 32'hfffffffc;
+		if (m_data_byteen[3]) fixed_wdata[31:24] = m_data_wdata[31:24];
+		if (m_data_byteen[2]) fixed_wdata[23:16] = m_data_wdata[23:16];
+		if (m_data_byteen[1]) fixed_wdata[15: 8] = m_data_wdata[15: 8];
+		if (m_data_byteen[0]) fixed_wdata[7 : 0] = m_data_wdata[7 : 0];
+	end
+
+	always @(posedge clk) begin
+		if (reset) for (i = 0; i < 4096; i = i + 1) data[i] <= 0;
+		else if (|m_data_byteen && fixed_addr >> 2 < 4096) begin
+			data[fixed_addr >> 2] <= fixed_wdata;
+			$display("@%h: *%h <= %h",  m_inst_addr, fixed_addr, fixed_wdata);
+		end
+	end
+
+	// ----------- For Registers -----------
+
+	always @(posedge clk) begin
+		if (~reset) begin
+			if (w_grf_we && (w_grf_addr != 0)) begin
+				$display("@%h: $%d <= %h",  w_inst_addr, w_grf_addr, w_grf_wdata);
+			end
+		end
+	end
+
+	// ----------- For Interrupt -----------
+
+	wire [31:0] fixed_macroscopic_pc;
+
+	assign fixed_macroscopic_pc = macroscopic_pc & 32'hfffffffc;
+
+	parameter target_pc1 = 32'h00003014;
+	parameter target_pc2 = 32'h00003030;
+	parameter target_pc3 = 32'h00003038;
+	parameter target_pc4 = 32'h00003044;
+	parameter target_pc5 = 32'h00003058;
+
+	integer count;
+
+	initial begin
+		count = 0;
+	end
+
+	always @(negedge clk) begin
+		if (reset) begin
+			interrupt = 0;
+		end
+		else begin
+			if (interrupt) begin
+				if (|m_int_byteen && (m_int_addr & 32'hfffffffc) == 32'h7f20) begin
+					interrupt = 0;
+				end
+			end
+			else if (fixed_macroscopic_pc == target_pc1) begin
+				if (count == 0) begin
+					count = 1;
+					interrupt = 1;
+				end
+			end
+			else if (fixed_macroscopic_pc == target_pc2) begin
+				if (count == 1) begin
+					count = 2;
+					interrupt = 1;
+				end
+			end
+			else if (fixed_macroscopic_pc == target_pc3) begin
+				if (count == 2) begin
+					count = 3;
+					interrupt = 1;
+				end
+			end
+			else if (fixed_macroscopic_pc == target_pc4) begin
+				if (count == 3) begin
+					count = 4;
+					interrupt = 1;
+				end
+			end
+			else if (fixed_macroscopic_pc == target_pc5) begin
+				if (count == 4) begin
+					count = 5;
+					interrupt = 1;
+				end
+			end
+		end
+	end
+
+	always #2 clk <= ~clk;
+
+endmodule
+
+
+
+================================================================================
+### 文件: mult.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date:    15:31:23 11/13/2024 
+// Design Name: 
+// Module Name:    mult 
+// Project Name: 
+// Target Devices: 
+// Tool versions: 
+// Description: 
+//
+// Dependencies: 
+//
+// Revision: 
+// Revision 0.01 - File Created
+// Additional Comments: 
+//
+//////////////////////////////////////////////////////////////////////////////////
+module mult(
+    input reset,
+    input clk,
+    input start,
+	 input [3:0] op,
+	 input Req,
+    output Busy,
+    input [31:0] A,
+    input [31:0] B,
+    output [31:0] HI,
+    output [31:0] LO
+    );
+
+reg [3:0] count;
+reg [63:0] temp;
+reg [31:0] hi;
+reg [31:0] lo;
+reg [31:0] temp1;
+reg [31:0] temp2;
+reg [3:0] type;
+
+assign HI=(count!=0 || start==1)?0:hi;
+assign LO=(count!=0 || start==1)?0:lo;
+assign Busy=(count!=0)?1:0;
+
+initial begin
+temp=0;
+count=0;
+hi=0;
+lo=0;
+temp1=0;
+temp2=0;
+type=0;
+end
+
+always @(posedge clk or posedge reset) begin
+if(reset) begin
+count<=0;
+temp<=0;
+temp1<=0;
+temp2<=0;
+hi<=0;
+lo<=0;
+type<=0;
+end
+else begin
+	if(count==0) begin
+		if(start && Req==0) begin
+			type<=op;
+			if(op==1) begin
+				count<=5;
+				temp<=$signed(A)*$signed(B);
+			end
+			else if(op==2) begin
+				count<=10;
+				temp1<=$signed(A)%$signed(B);
+				temp2<=$signed(A)/$signed(B);
+			end
+			else if(op==7) begin
+				count<=5;
+				temp<={0,A[31:0]}*{0,B[31:0]};
+			end
+			else if(op==8) begin
+				count<=10;
+				temp1<={0,A[31:0]}%{0,B[31:0]};
+				temp2<={0,A[31:0]}/{0,B[31:0]};
+			end
+			else lo<=32'h0x0x0x0x;
+		end
+		else begin 
+			if(op==3 && Req==0) begin
+				hi<=A;
+			end
+			else if(op==4 && Req==0) begin
+				lo<=A;
+			end
+		end
+	end
+	else if(count==1) begin
+		if(type==1 || type==7) begin
+			hi<=temp[63:32];
+			lo<=temp[31:0];
+			end
+		else if(type==2 || type==8) begin
+			hi<=temp1;
+			lo<=temp2;
+			end
+		else lo<=32'h0x0x0x0x;
+		count<=count-1;
+	end
+	else count<=count-1;
+end
+end
+
+endmodule
+
+
+================================================================================
+### 文件: mult_tb.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+
+////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer:
+//
+// Create Date:   17:32:13 11/13/2024
+// Design Name:   mult
+// Module Name:   C:/Users/lenovo/Desktop/codes/verilog/ppcpu/mult_tb.v
+// Project Name:  pipeline_cpu
+// Target Device:  
+// Tool versions:  
+// Description: 
+//
+// Verilog Test Fixture created by ISE for module: mult
+//
+// Dependencies:
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+////////////////////////////////////////////////////////////////////////////////
+
+module mult_tb;
+
+	// Inputs
+	reg reset;
+	reg clk;
+	reg start;
+	reg [3:0] op;
+	reg [31:0] A;
+	reg [31:0] B;
+
+	// Outputs
+	wire Busy;
+	wire [31:0] HI;
+	wire [31:0] LO;
+
+	// Instantiate the Unit Under Test (UUT)
+	mult uut (
+		.reset(reset), 
+		.clk(clk), 
+		.start(start), 
+		.op(op), 
+		.Busy(Busy), 
+		.A(A), 
+		.B(B), 
+		.HI(HI), 
+		.LO(LO)
+	);
+
+	initial begin
+		// Initialize Inputs
+		reset = 0;
+		clk = 0;
+		start = 0;
+		op = 0;
+		A = 0;
+		B = 0;
+
+		// Wait 100 ns for global reset to finish
+		#100;
+      start=1;
+		op=7;
+		A=108;
+		B=-20;
+		
+		#10 start=0;
+		// Add stimulus here
+	
+	end
+   always #5 clk=~clk;   
+endmodule
+
+
+
+================================================================================
+### 文件: muti_tb.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+
+////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer:
+//
+// Create Date:   15:37:45 11/13/2024
+// Design Name:   mult
+// Module Name:   C:/Users/lenovo/Desktop/codes/verilog/ppcpu/muti_tb.v
+// Project Name:  pipeline_cpu
+// Target Device:  
+// Tool versions:  
+// Description: 
+//
+// Verilog Test Fixture created by ISE for module: mult
+//
+// Dependencies:
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+////////////////////////////////////////////////////////////////////////////////
+
+module muti_tb;
+
+	// Inputs
+	reg reset;
+	reg clk;
+	reg start;
+	reg [31:0] A;
+	reg [31:0] B;
+	reg [2:0] op;
+
+	// Outputs
+	wire Busy;
+	wire [31:0] HI;
+	wire [31:0] LO;
+
+	// Instantiate the Unit Under Test (UUT)
+	mult uut (
+		.reset(reset), 
+		.clk(clk), 
+		.start(start), 
+		.Busy(Busy), 
+		.A(A), 
+		.B(B), 
+		.HI(HI), 
+		.LO(LO),
+		.op(op)
+	);
+
+	initial begin
+		// Initialize Inputs
+		reset = 0;
+		clk = 0;
+		start = 0;
+		A = 0;
+		B = 0;
+
+		// Wait 100 ns for global reset to finish
+		#100;
+      A=12;
+		B=16;
+		start=1;
+		op=1;
+		
+		#10 start=0;
+		
+		#100;
+		A=32'hffffbbbb;
+		B=32'h00000010;
+		start=1;
+		
+		#10 start=0;
+		// Add stimulus here
+		
+	end
+   always #5 clk=~clk;   
+endmodule
+
+
+
+================================================================================
+### 文件: P7_standard_timer_2019.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+`define IDLE 2'b00
+`define LOAD 2'b01
+`define CNT  2'b10
+`define INT  2'b11
+
+`define ctrl   mem[0]
+`define preset mem[1]
+`define count  mem[2]
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date:    21:43:39 12/28/2017 
+// Design Name: 
+// Module Name:    TC 
+// Project Name: 
+// Target Devices: 
+// Tool versions: 
+// Description: 
+//
+// Dependencies: 
+//
+// Revision: 
+// Revision 0.01 - File Created
+// Additional Comments: 
+//
+//////////////////////////////////////////////////////////////////////////////////
+module TC(
+    input clk,
+    input reset,
+    input [31:2] Addr,
+    input WE,
+    input [31:0] Din,
+    output [31:0] Dout,
+    output IRQ
+    );
+
+	reg [1:0] state;
+	reg [31:0] mem [2:0];
+	
+	reg _IRQ;
+	assign IRQ = `ctrl[3] & _IRQ;
+	
+	assign Dout = mem[Addr[3:2]];
+	
+	wire [31:0] load = Addr[3:2] == 0 ? {28'h0, Din[3:0]} : Din;
+	
+	integer i;
+	always @(posedge clk) begin
+		if(reset) begin
+			state <= 0; 
+			for(i = 0; i < 3; i = i+1) mem[i] <= 0;
+			_IRQ <= 0;
+		end
+		else if(WE) begin
+			// $display("%d@: *%h <= %h", $time, {Addr, 2'b00}, load);
+			mem[Addr[3:2]] <= load;
+		end
+		else begin
+			case(state)
+				`IDLE : if(`ctrl[0]) begin
+					state <= `LOAD;
+					_IRQ <= 1'b0;
+				end
+				`LOAD : begin
+					`count <= `preset;
+					state <= `CNT;
+				end
+				`CNT  : 
+					if(`ctrl[0]) begin
+						if(`count > 1) `count <= `count-1;
+						else begin
+							`count <= 0;
+							state <= `INT;
+							_IRQ <= 1'b1;
+						end
+					end
+					else state <= `IDLE;
+				default : begin
+					if(`ctrl[2:1] == 2'b00) `ctrl[0] <= 1'b0;
+					else _IRQ <= 1'b0;
+					state <= `IDLE;
+				end
+			endcase
+		end
+	end
+
+endmodule
+
+
+================================================================================
+### 文件: PC_trans.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date:    19:55:49 10/29/2024 
+// Design Name: 
+// Module Name:    PC_trans 
+// Project Name: 
+// Target Devices: 
+// Tool versions: 
+// Description: 
+//
+// Dependencies: 
+//
+// Revision: 
+// Revision 0.01 - File Created
+// Additional Comments: 
+//
+//////////////////////////////////////////////////////////////////////////////////
+module PC_trans(
+    input [31:0] PC,
+    input [15:0] sel_PC,
+	 input [31:0] jr_PC,
+	 input [25:0] instr_index,
+    input [2:0] nPC_sel,
+	 input [31:0] EPCOut,
+	 input Req,
+    output [31:0] next_PC,
+	 input ID_EXLClr
+    );
+
+wire[31:0] ext_PC;
+wire[31:0] lpc;
+
+assign ext_PC=$signed({sel_PC,2'b00});
+assign lpc=PC-4;
+assign next_PC=(nPC_sel==1)?ext_PC+lpc+4:
+					(nPC_sel==2)?({lpc[31:28],instr_index,2'b00})-32'h0000_3000:
+					(nPC_sel==3)?(jr_PC)-32'h0000_3000:
+					(nPC_sel==4)?ext_PC+lpc+4:
+					(nPC_sel==5)?EPCOut-32'h0000_3000:
+					PC+4;
+
+endmodule
+
+
+================================================================================
+### 文件: PC_trans_tb.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+
+////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer:
+//
+// Create Date:   20:04:04 10/29/2024
+// Design Name:   PC_trans
+// Module Name:   /home/co-eda/single_cpu/PC_trans_tb.v
+// Project Name:  single_cpu
+// Target Device:  
+// Tool versions:  
+// Description: 
+//
+// Verilog Test Fixture created by ISE for module: PC_trans
+//
+// Dependencies:
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+////////////////////////////////////////////////////////////////////////////////
+
+module PC_trans_tb;
+
+	// Inputs
+	reg [31:0] PC;
+	reg [15:0] sel_PC;
+	reg [1:0] nPC_sel;
+	reg [25:0] instr_index;
+
+	// Outputs
+	wire [31:0] next_PC;
+
+	// Instantiate the Unit Under Test (UUT)
+	PC_trans uut (
+		.PC(PC), 
+		.sel_PC(sel_PC),  
+		.nPC_sel(nPC_sel),
+		.next_PC(next_PC),
+		.instr_index(instr_index)
+	);
+
+	initial begin
+		// Initialize Inputs
+		PC = 0;
+		sel_PC = 0;
+
+		// Wait 100 ns for global reset to finish
+		#100;
+      PC=32'h00003020;
+		sel_PC=16'hfffb;
+		instr_index={2'b00,24'h000c01};
+		nPC_sel=2;
+	end
+      
+endmodule
+
+
+
+================================================================================
+### 文件: TC_tb.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+
+////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer:
+//
+// Create Date:   20:58:51 11/29/2024
+// Design Name:   TC
+// Module Name:   C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/TC_tb.v
+// Project Name:  pipeline_cpu
+// Target Device:  
+// Tool versions:  
+// Description: 
+//
+// Verilog Test Fixture created by ISE for module: TC
+//
+// Dependencies:
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+////////////////////////////////////////////////////////////////////////////////
+
+module TC_tb;
+
+	// Inputs
+	reg clk;
+	reg reset;
+	reg [31:2] Addr;
+	reg WE;
+	reg [31:0] Din;
+
+	// Outputs
+	wire [31:0] Dout;
+	wire IRQ;
+
+	// Instantiate the Unit Under Test (UUT)
+	TC uut (
+		.clk(clk), 
+		.reset(reset), 
+		.Addr(Addr), 
+		.WE(WE), 
+		.Din(Din), 
+		.Dout(Dout), 
+		.IRQ(IRQ)
+	);
+
+	initial begin
+		// Initialize Inputs
+		clk = 0;
+		reset = 0;
+		Addr = 0;
+		WE = 0;
+		Din = 0;
+
+		// Wait 100 ns for global reset to finish
+		#100;
+        
+		// Add stimulus here
+
+	end
+      
+endmodule
+
+
+
+================================================================================
+### 文件: trans.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date:    21:12:12 10/29/2024 
+// Design Name: 
+// Module Name:    Trans 
+// Project Name: 
+// Target Devices: 
+// Tool versions: 
+// Description: 
+//
+// Dependencies: 
+//
+// Revision: 
+// Revision 0.01 - File Created
+// Additional Comments: 
+//
+//////////////////////////////////////////////////////////////////////////////////
+module Trans(
+    input [31:0] instr,
+    output [4:0] rs,
+    output [4:0] rt,
+    output [4:0] rd,
+    output [15:0] immediate,
+    output [25:0] instr_index
+    );
+
+assign rs=instr[25:21];
+assign rt=instr[20:16];
+assign rd=instr[15:11];
+assign immediate=instr[15:0];
+assign instr_index=instr[25:0];
+
+endmodule
+
+
+================================================================================
+### 文件: Trans_tb.v ###
+================================================================================
+
+`timescale 1ns / 1ps
+
+////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer:
+//
+// Create Date:   23:21:19 10/30/2024
+// Design Name:   Trans
+// Module Name:   /home/co-eda/single_cpu/Trans_tb.v
+// Project Name:  single_cpu
+// Target Device:  
+// Tool versions:  
+// Description: 
+//
+// Verilog Test Fixture created by ISE for module: Trans
+//
+// Dependencies:
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+////////////////////////////////////////////////////////////////////////////////
+
+module Trans_tb;
+
+	// Inputs
+	reg [31:0] instr;
+
+	// Outputs
+	wire [4:0] rs;
+	wire [4:0] rt;
+	wire [4:0] rd;
+	wire [15:0] immediate;
+	wire [25:0] instr_index;
+
+	// Instantiate the Unit Under Test (UUT)
+	Trans uut (
+		.instr(instr), 
+		.rs(rs), 
+		.rt(rt), 
+		.rd(rd), 
+		.immediate(immediate), 
+		.instr_index(instr_index)
+	);
+
+	initial begin
+		// Initialize Inputs
+		instr = 0;
+
+		// Wait 100 ns for global reset to finish
+		#100;
+      instr=32'h0c000c01; 
+		// Add stimulus here
+
+	end
+      
+endmodule
+
+
+

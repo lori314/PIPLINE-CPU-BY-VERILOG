@@ -1,0 +1,69 @@
+Running: D:\Xilinx\14.7\ISE_DS\ISE\bin\nt64\unwrapped\fuse.exe -intstyle ise -incremental -lib unisims_ver -lib unimacro_ver -lib xilinxcorelib_ver -o C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/tb_isim_beh.exe -prj C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/tb_beh.prj work.tb work.glbl 
+ISim P.20131013 (signature 0x7708f090)
+Number of CPUs detected in this system: 20
+Turning on mult-threading, number of parallel sub-compilation jobs: 40 
+Determining compilation order of HDL files
+Analyzing Verilog file "C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/PC_trans.v" into library work
+Analyzing Verilog file "C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/trans.v" into library work
+Analyzing Verilog file "C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/mult.v" into library work
+WARNING:HDLCompiler:327 - "C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/mult.v" Line 81: Concatenation with unsized literal; will interpret as 32 bits
+WARNING:HDLCompiler:327 - "C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/mult.v" Line 85: Concatenation with unsized literal; will interpret as 32 bits
+WARNING:HDLCompiler:327 - "C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/mult.v" Line 86: Concatenation with unsized literal; will interpret as 32 bits
+Analyzing Verilog file "C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/IM_IW.v" into library work
+Analyzing Verilog file "C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/IF_ID.v" into library work
+Analyzing Verilog file "C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/IFU.v" into library work
+Analyzing Verilog file "C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/IE_IM.v" into library work
+Analyzing Verilog file "C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/ID_EX.v" into library work
+Analyzing Verilog file "C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/Hazard_Cotroller.v" into library work
+Analyzing Verilog file "C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/GRF.v" into library work
+Analyzing Verilog file "C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/Ext.v" into library work
+Analyzing Verilog file "C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/ExcM.v" into library work
+Analyzing Verilog file "C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/DE.v" into library work
+Analyzing Verilog file "C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/cp0.v" into library work
+Analyzing Verilog file "C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/Controller.v" into library work
+Analyzing Verilog file "C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/BE.v" into library work
+Analyzing Verilog file "C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/ALU.v" into library work
+WARNING:HDLCompiler:327 - "C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/ALU.v" Line 78: Concatenation with unsized literal; will interpret as 32 bits
+Analyzing Verilog file "C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/P7_standard_timer_2019.v" into library work
+Analyzing Verilog file "C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/CPU.v" into library work
+Analyzing Verilog file "C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/Bridge.v" into library work
+Analyzing Verilog file "C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/mips.v" into library work
+WARNING:HDLCompiler:327 - "C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/mips.v" Line 128: Concatenation with unsized literal; will interpret as 32 bits
+Analyzing Verilog file "C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/mips_tb.v" into library work
+Analyzing Verilog file "D:/Xilinx/14.7/ISE_DS/ISE//verilog/src/glbl.v" into library work
+Starting static elaboration
+WARNING:HDLCompiler:1016 - "C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/mips.v" Line 68: Port int_writedata is not connected to this instance
+WARNING:HDLCompiler:327 - "C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/mips.v" Line 128: Concatenation with unsized literal; will interpret as 32 bits
+WARNING:HDLCompiler:327 - "C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/ALU.v" Line 78: Concatenation with unsized literal; will interpret as 32 bits
+WARNING:HDLCompiler:327 - "C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/mult.v" Line 81: Concatenation with unsized literal; will interpret as 32 bits
+WARNING:HDLCompiler:327 - "C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/mult.v" Line 85: Concatenation with unsized literal; will interpret as 32 bits
+WARNING:HDLCompiler:327 - "C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/mult.v" Line 86: Concatenation with unsized literal; will interpret as 32 bits
+Completed static elaboration
+Compiling module Bridge
+Compiling module Hazard_Cotroller
+Compiling module PC_trans
+Compiling module IFU
+Compiling module IF_ID
+Compiling module Controller
+Compiling module GRF
+Compiling module Ext
+Compiling module Trans
+Compiling module ID_EX
+Compiling module ALU
+Compiling module mult
+Compiling module IE_IM
+Compiling module DE
+Compiling module BE
+Compiling module IM_IW
+Compiling module ExcM
+Compiling module CP0
+Compiling module CPU
+Compiling module TC
+Compiling module mips
+Compiling module tb
+Compiling module glbl
+Time Resolution for simulation is 1ps.
+Compiled 23 Verilog Units
+Built simulation executable C:/Users/lenovo/Desktop/codes/verilog/P7/ppcpu/tb_isim_beh.exe
+Fuse Memory Usage: 32544 KB
+Fuse CPU Usage: 436 ms

@@ -1,0 +1,866 @@
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date:    20:23:25 10/30/2024 
+// Design Name: 
+// Module Name:    Controller 
+// Project Name: 
+// Target Devices: 
+// Tool versions: 
+// Description: 
+//
+// Dependencies: 
+//
+// Revision: 
+// Revision 0.01 - File Created
+// Additional Comments: 
+//
+//////////////////////////////////////////////////////////////////////////////////
+`define cal 6'b000000
+`define c0 6'b010000
+`define ori 6'b001101
+`define sw 6'b101011
+`define lw 6'b100011
+`define beq 6'b000100
+`define lui 6'b001111
+`define jal 6'b000011
+`define addi 6'b001000
+`define andi 6'b001100
+`define bne 6'b000101
+`define sh 6'b101001
+`define sb 6'b101000
+`define lh 6'b100001
+`define lb 6'b100000
+
+`define add 6'b100000
+`define sub 6'b100010
+`define jr  6'b001000
+`define AND 6'b100100
+`define OR  6'b100101
+`define slt 6'b101010
+`define sltu 6'b101011
+`define mult 6'b011000 
+`define div 6'b011010
+`define mfhi 6'b010000
+`define mflo 6'b010010
+`define mthi 6'b010001
+`define mtlo 6'b010011
+`define multu 6'b011001
+`define divu 6'b011011
+`define syscall 6'b001100
+`define nop 6'b000000
+
+`define mtc0 5'b00100
+`define mfc0 5'b00000
+`define eret 6'b011000
+
+module Controller(
+    input [31:0] instr,
+	 input [4:0] ExcCodeF,
+    output reg MemWrite,
+    output reg RegWrite,
+    output reg ExtOp,
+    output reg ALUSrc,
+    output reg RegDst,
+    output reg MemtoReg,
+    output reg[2:0] nPC_sel,
+    output reg[2:0] ALUctr,
+    output reg ExtHigh,
+	 output reg JAL_PC,
+	 output reg[2:0] T_use_rs,
+	 output reg[2:0] T_use_rt,
+	 output reg[2:0] T_new,
+	 output reg[3:0] Multop,
+	 output reg Start,
+	 output reg[2:0] MemOp,
+	 output reg[4:0] ExcCodeD,
+	 output reg C0Write,
+	 output reg ID_EXLClr
+    );
+
+reg[5:0] special;
+reg[5:0] func;
+reg[4:0] COP;
+
+initial begin
+special=0;
+func=0;
+COP=0;
+end
+
+always @(*) begin
+special=instr[31:26];
+func=instr[5:0];
+COP=instr[25:21];
+case(special)
+`ori:begin
+MemWrite=0;
+RegWrite=1;
+ExtOp=0;
+ALUSrc=1;
+RegDst=0;
+MemtoReg=0;
+nPC_sel=0;
+ALUctr=2;
+ExtHigh=0;
+JAL_PC=0;
+T_use_rs=1;
+T_use_rt=1;
+T_new=2;
+Multop=0;
+Start=0;
+MemOp=0;
+ExcCodeD=ExcCodeF;
+C0Write=0;
+ID_EXLClr=0;
+end
+`lw:begin
+MemWrite=0;
+RegWrite=1;
+ExtOp=1;
+ALUSrc=1;
+RegDst=0;
+MemtoReg=1;
+nPC_sel=0;
+ALUctr=6;
+ExtHigh=0;
+JAL_PC=0;
+T_use_rs=1;
+T_use_rt=3;
+T_new=3;
+Multop=0;
+Start=0;
+MemOp=3;
+ExcCodeD=ExcCodeF;
+C0Write=0;
+ID_EXLClr=0;
+end
+`lh:begin
+MemWrite=0;
+RegWrite=1;
+ExtOp=1;
+ALUSrc=1;
+RegDst=0;
+MemtoReg=1;
+nPC_sel=0;
+ALUctr=6;
+ExtHigh=0;
+JAL_PC=0;
+T_use_rs=1;
+T_use_rt=3;
+T_new=3;
+Multop=0;
+Start=0;
+MemOp=4;
+ExcCodeD=ExcCodeF;
+C0Write=0;
+ID_EXLClr=0;
+end
+`lb:begin
+MemWrite=0;
+RegWrite=1;
+ExtOp=1;
+ALUSrc=1;
+RegDst=0;
+MemtoReg=1;
+nPC_sel=0;
+ALUctr=6;
+ExtHigh=0;
+JAL_PC=0;
+T_use_rs=1;
+T_use_rt=3;
+T_new=3;
+Multop=0;
+Start=0;
+MemOp=5;
+ExcCodeD=ExcCodeF;
+C0Write=0;
+ID_EXLClr=0;
+end
+`sw:begin
+MemWrite=1;
+RegWrite=0;
+ExtOp=1;
+ALUSrc=1;
+RegDst=0;
+MemtoReg=0;
+nPC_sel=0;
+ALUctr=6;
+ExtHigh=0;
+JAL_PC=0;
+T_use_rs=1;
+T_use_rt=1;
+T_new=0;
+Multop=0;
+Start=0;
+MemOp=0;
+ExcCodeD=ExcCodeF;
+C0Write=0;
+ID_EXLClr=0;
+end
+`sh:begin
+MemWrite=1;
+RegWrite=0;
+ExtOp=1;
+ALUSrc=1;
+RegDst=0;
+MemtoReg=0;
+nPC_sel=0;
+ALUctr=6;
+ExtHigh=0;
+JAL_PC=0;
+T_use_rs=1;
+T_use_rt=1;
+T_new=0;
+Multop=0;
+Start=0;
+MemOp=1;
+ExcCodeD=ExcCodeF;
+C0Write=0;
+ID_EXLClr=0;
+end
+`sb:begin
+MemWrite=1;
+RegWrite=0;
+ExtOp=1;
+ALUSrc=1;
+RegDst=0;
+MemtoReg=0;
+nPC_sel=0;
+ALUctr=6;
+ExtHigh=0;
+JAL_PC=0;
+T_use_rs=1;
+T_use_rt=1;
+T_new=0;
+Multop=0;
+Start=0;
+MemOp=2;
+ExcCodeD=ExcCodeF;
+C0Write=0;
+ID_EXLClr=0;
+end
+`beq:begin
+MemWrite=0;
+RegWrite=0;
+ExtOp=0;
+ALUSrc=0;
+RegDst=0;
+MemtoReg=0;
+nPC_sel=1;
+ALUctr=0;
+ExtHigh=0;
+JAL_PC=0;
+T_use_rs=0;
+T_use_rt=0;
+T_new=0;
+Multop=0;
+Start=0;
+MemOp=0;
+ExcCodeD=ExcCodeF;
+C0Write=0;
+ID_EXLClr=0;
+end
+`bne:begin
+MemWrite=0;
+RegWrite=0;
+ExtOp=0;
+ALUSrc=0;
+RegDst=0;
+MemtoReg=0;
+nPC_sel=4;
+ALUctr=0;
+ExtHigh=0;
+JAL_PC=0;
+T_use_rs=0;
+T_use_rt=0;
+T_new=0;
+Multop=0;
+Start=0;
+MemOp=0;
+ExcCodeD=ExcCodeF;
+C0Write=0;
+ID_EXLClr=0;
+end
+`jal:begin
+MemWrite=0;
+RegWrite=1;
+ExtOp=0;
+ALUSrc=0;
+RegDst=0;
+MemtoReg=0;
+nPC_sel=2;
+ALUctr=0;
+ExtHigh=0;
+JAL_PC=1;
+T_use_rs=4;
+T_use_rt=4;
+T_new=2;
+Multop=0;
+Start=0;
+MemOp=0;
+ExcCodeD=ExcCodeF;
+C0Write=0;
+ID_EXLClr=0;
+end
+`lui:begin
+MemWrite=0;
+RegWrite=1;
+ExtOp=0;
+ALUSrc=1;
+RegDst=0;
+MemtoReg=0;
+nPC_sel=0;
+ALUctr=0;
+ExtHigh=1;
+JAL_PC=0;
+T_use_rs=4;
+T_use_rt=4;
+T_new=2;
+Multop=0;
+Start=0;
+MemOp=0;
+ExcCodeD=ExcCodeF;
+C0Write=0;
+ID_EXLClr=0;
+end
+`addi:begin
+MemWrite=0;
+RegWrite=1;
+ExtOp=1;
+ALUSrc=1;
+RegDst=0;
+MemtoReg=0;
+nPC_sel=0;
+ALUctr=6;
+ExtHigh=0;
+JAL_PC=0;
+T_use_rs=1;
+T_use_rt=1;
+T_new=2;
+Multop=0;
+Start=0;
+MemOp=0;
+ExcCodeD=ExcCodeF;
+C0Write=0;
+ID_EXLClr=0;
+end
+`andi:begin
+MemWrite=0;
+RegWrite=1;
+ExtOp=0;
+ALUSrc=1;
+RegDst=0;
+MemtoReg=0;
+nPC_sel=0;
+ALUctr=3;
+ExtHigh=0;
+JAL_PC=0;
+T_use_rs=1;
+T_use_rt=1;
+T_new=2;
+Multop=0;
+Start=0;
+MemOp=0;
+ExcCodeD=ExcCodeF;
+C0Write=0;
+ID_EXLClr=0;
+end
+`c0:begin
+	if(func==`eret) begin
+	MemWrite=0;
+	RegWrite=0;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=0;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=0;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=4;
+	T_use_rt=4;
+	T_new=0;
+	Multop=0;
+	Start=0;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=1;
+	end
+	else begin
+	case(COP)
+	`mfc0:begin
+	MemWrite=0;
+	RegWrite=1;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=0;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=0;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=4;
+	T_use_rt=4;
+	T_new=3;
+	Multop=0;
+	Start=0;
+	MemOp=6;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	`mtc0:begin
+	MemWrite=0;
+	RegWrite=0;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=0;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=0;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=4;
+	T_use_rt=3;
+	T_new=0;
+	Multop=0;
+	Start=0;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=1;
+	ID_EXLClr=0;
+	end
+	default:begin
+	MemWrite=0;
+	RegWrite=0;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=0;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=0;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=4;
+	T_use_rt=4;
+	T_new=0;
+	Multop=0;
+	Start=0;
+	MemOp=0;
+	ExcCodeD=10;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	endcase
+	end
+end
+`cal:begin
+	case(func)
+	`add:begin
+	MemWrite=0;
+	RegWrite=1;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=1;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=6;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=1;
+	T_use_rt=1;
+	T_new=2;
+	Multop=0;
+	Start=0;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	`sub:begin
+	MemWrite=0;
+	RegWrite=1;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=1;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=1;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=1;
+	T_use_rt=1;
+	T_new=2;
+	Multop=0;
+	Start=0;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	`jr:begin
+	MemWrite=0;
+	RegWrite=0;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=0;
+	MemtoReg=0;
+	nPC_sel=3;
+	ALUctr=0;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=0;
+	T_use_rt=4;
+	T_new=0;
+	Multop=0;
+	Start=0;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	`AND:begin
+	MemWrite=0;
+	RegWrite=1;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=1;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=3;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=1;
+	T_use_rt=1;
+	T_new=2;
+	Multop=0;
+	Start=0;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	`OR:begin
+	MemWrite=0;
+	RegWrite=1;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=1;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=2;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=1;
+	T_use_rt=1;
+	T_new=2;
+	Multop=0;
+	Start=0;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	`slt:begin
+	MemWrite=0;
+	RegWrite=1;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=1;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=4;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=1;
+	T_use_rt=1;
+	T_new=2;
+	Multop=0;
+	Start=0;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	`sltu:begin
+	MemWrite=0;
+	RegWrite=1;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=1;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=5;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=1;
+	T_use_rt=1;
+	T_new=2;
+	Multop=0;
+	Start=0;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	`mult:begin
+	MemWrite=0;
+	RegWrite=0;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=0;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=0;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=1;
+	T_use_rt=1;
+	T_new=0;
+	Multop=1;
+	Start=1;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	`div:begin
+	MemWrite=0;
+	RegWrite=0;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=0;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=0;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=1;
+	T_use_rt=1;
+	T_new=0;
+	Multop=2;
+	Start=1;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	`multu:begin
+	MemWrite=0;
+	RegWrite=0;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=0;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=0;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=1;
+	T_use_rt=1;
+	T_new=0;
+	Multop=7;
+	Start=1;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	`divu:begin
+	MemWrite=0;
+	RegWrite=0;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=0;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=0;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=1;
+	T_use_rt=1;
+	T_new=0;
+	Multop=8;
+	Start=1;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	`mthi:begin
+	MemWrite=0;
+	RegWrite=0;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=0;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=0;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=1;
+	T_use_rt=4;
+	T_new=0;
+	Multop=3;
+	Start=0;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	`mtlo:begin
+	MemWrite=0;
+	RegWrite=0;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=0;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=0;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=1;
+	T_use_rt=4;
+	T_new=0;
+	Multop=4;
+	Start=0;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	`mfhi:begin
+	MemWrite=0;
+	RegWrite=1;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=1;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=0;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=4;
+	T_use_rt=4;
+	T_new=2;
+	Multop=5;
+	Start=0;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	`mflo:begin
+	MemWrite=0;
+	RegWrite=1;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=1;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=0;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=4;
+	T_use_rt=4;
+	T_new=2;
+	Multop=6;
+	Start=0;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	`nop:begin
+	MemWrite=0;
+	RegWrite=0;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=0;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=0;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=4;
+	T_use_rt=4;
+	T_new=0;
+	Multop=0;
+	Start=0;
+	MemOp=0;
+	ExcCodeD=ExcCodeF;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	`syscall:begin
+	MemWrite=0;
+	RegWrite=0;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=0;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=0;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=4;
+	T_use_rt=4;
+	T_new=0;
+	Multop=0;
+	Start=0;
+	MemOp=0;
+	ExcCodeD=8;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	default:begin
+	MemWrite=0;
+	RegWrite=0;
+	ExtOp=0;
+	ALUSrc=0;
+	RegDst=0;
+	MemtoReg=0;
+	nPC_sel=0;
+	ALUctr=0;
+	ExtHigh=0;
+	JAL_PC=0;
+	T_use_rs=4;
+	T_use_rt=4;
+	T_new=0;
+	Multop=0;
+	Start=0;
+	MemOp=0;
+	ExcCodeD=10;
+	C0Write=0;
+	ID_EXLClr=0;
+	end
+	endcase
+	end
+default:begin
+MemWrite=0;
+RegWrite=0;
+ExtOp=0;
+ALUSrc=0;
+RegDst=0;
+MemtoReg=0;
+nPC_sel=0;
+ALUctr=0;
+ExtHigh=0;
+JAL_PC=0;
+T_use_rs=4;
+T_use_rt=4;
+T_new=0;
+Multop=0;
+Start=0;
+MemOp=0;
+ExcCodeD=10;
+C0Write=0;
+ID_EXLClr=0;
+end
+endcase
+end
+endmodule

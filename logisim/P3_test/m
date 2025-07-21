@@ -1,0 +1,93 @@
+v2.0 raw
+35090001
+.data
+example100:.word 0:100
+
+.macro add_example(%dst)
+move $t4,%dst
+sll $t4,$t4,2
+lw $t3,example100($t4)
+add $s0,$s0,$t3
+.end_macro
+
+.text
+li $t1,0
+li $s0,0
+for_1_begin:
+bge $t1,100,for_1_end
+add_example($t1)
+addi $t1,$t1,1
+
+for_1_end:
+sll $t1,$t1,2
+sw $s0,example100($t1)
+
+.data
+src:.word 0:100
+.align 4
+dst:.word 0:100
+
+.macro trans(%dst)
+move $t4,%dst
+sll $t4,$t4,2
+lw $t2,src($t4)
+sw $t2,dst($t4)
+.end_macro
+
+.text
+li $t1,0
+for_begin:
+bge $t1,100,for_end
+trans($t1)
+addi $t1,$t1,1
+
+for_end:
+li $v0,10
+syscall
+
+.data
+.macro my_abs()
+bgtz $a0,end
+subi $a0,$a0,1
+xori $a0,$a0,0xffffffff
+end:
+.end_macro
+
+.text
+li $a0,10
+my_abs()
+li $v0,1
+syscall
+li $a0,-100
+my_abs()
+li $v0,1
+syscall
+li $v0,10
+syscall
+
+.data
+array:.word 0:1000
+.macro fib()
+li $t0,1
+li $t1,1
+li $t2,0
+for_1_begin:
+bge $t2,$a0,for_1_end
+move $t9,$t2
+sll $t9,$t9,2
+sw $t0,array($t9)
+addi $t2,$t2,1
+move $t3,$t1
+add $t1,$t1,$t0
+move $t0,$t3
+j for_1_begin
+for_1_end:
+.end_macro
+.text
+la $a1,array
+li $a0,5
+fib()
+li $v0,10
+syscall
+
+  
