@@ -1,20 +1,31 @@
-# Xilinx ISE / ISim generated files
+# Xilinx ISE / ISim generated artifacts
+**/isim/
+**/xst/
+**/_xmsgs/
+**/iseconfig/
+
 *.exe
 *.wdb
 *.ngc
 *.ngr
-*.xrpt
 *.lso
 *.syr
-*.stx
+*.xrpt
 *.xmsgs
 *.cmd_log
-*.log
-*.html
+*.stx
 
-# Generated simulation directories
-**/isim/
-**/_xmsgs/
+*_stx_beh.prj
+*_beh.prj
+*_summary.html
+
+fuse.log
+fuse.xmsgs
+fuseRelaunch.cmd
+isim.cmd
+isim.log
+webtalk_pn.xml
+xilinxsim.ini
 
 # OS / editor files
 .DS_Store
