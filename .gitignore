@@ -1,0 +1,21 @@
+# Xilinx ISE / ISim generated files
+*.exe
+*.wdb
+*.ngc
+*.ngr
+*.xrpt
+*.lso
+*.syr
+*.stx
+*.xmsgs
+*.cmd_log
+*.log
+*.html
+
+# Generated simulation directories
+**/isim/
+**/_xmsgs/
+
+# OS / editor files
+.DS_Store
+Thumbs.db
