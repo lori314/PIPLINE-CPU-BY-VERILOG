@@ -1,0 +1,32 @@
+# Xilinx ISE / ISim generated artifacts
+**/isim/
+**/xst/
+**/_xmsgs/
+**/iseconfig/
+
+*.exe
+*.wdb
+*.ngc
+*.ngr
+*.lso
+*.syr
+*.xrpt
+*.xmsgs
+*.cmd_log
+*.stx
+
+*_stx_beh.prj
+*_beh.prj
+*_summary.html
+
+fuse.log
+fuse.xmsgs
+fuseRelaunch.cmd
+isim.cmd
+isim.log
+webtalk_pn.xml
+xilinxsim.ini
+
+# OS / editor files
+.DS_Store
+Thumbs.db

@@ -1,80 +1,203 @@
-# 我的计算机组成原理实践日志 (From Logic Gates to a Pipeline CPU)
+# Five-Stage MIPS CPU in Verilog
 
-## 1. 关于这个仓库
+这是北航计算机组成原理课程期间保留下来的完整实践仓库，内容从 Logisim 数字逻辑、MIPS 汇编，一直到 Verilog 单周期 CPU 和五级流水线 CPU。
 
-你好！欢迎来到我的计算机组成原理学习与实践仓库。
+仓库不是一个单独作业，而是按课程进度逐步积累下来的：
 
-这个仓库是我在学习“计算机组成原理”课程时，进行的所有上机实验和课程设计的完整档案。它记录了我**自底向上**构建一个计算机系统的全过程：从最基本的**逻辑门**，到**组合与时序逻辑电路**，再到**MIPS汇编编程**，最终的集大成者是——一个**支持异常处理的五级流水线MIPS CPU**的完整设计与实现。
+```text
+Logisim 数字逻辑
+        ↓
+MIPS Assembly / MARS
+        ↓
+Single-Cycle CPU
+        ↓
+Five-Stage Pipeline CPU
+        ↓
+Exception / Interrupt / MMIO
+```
 
-这不仅是我的课程作业，更是我动手探索计算机底层世界、将理论知识转化为硬件实体和可执行代码的真实记录。
+如果只想看最终 CPU，建议直接从 `ppcpu/` 开始。
 
----
+## 目录
 
-## 2. 实践项目索引
+```text
+.
+├── logisim/      # 前期数字逻辑与数据通路实验
+├── MARS/         # MIPS 汇编练习
+├── single_cpu/   # 单周期 CPU
+└── ppcpu/        # 五级流水线 CPU
+```
 
-我将所有的设计和代码，按照技术栈和学习阶段分成了以下三个核心模块。
+## Logisim
 
-### 模块一：数字逻辑电路设计 (使用 Logisim)
+`logisim/` 保存了课程前期的电路实验，包括排序网络、FSM、CRC、GRF 以及早期 CPU 数据通路等。
 
-在`logisim/`目录中，存放了我使用Logisim进行的一系列数字逻辑电路设计实验。这是构建CPU的硬件基础。
+这部分主要用于熟悉组合逻辑、时序逻辑和模块化数据通路设计。
 
-*   **组合逻辑单元:**
-    *   `4BitSort.circ`: 设计了一个4位输入的**排序网络**，实践了如何将一个算法（比较和交换）直接用硬件逻辑门实现。
-    *   `swap.circ`: 数据交换功能的基础单元。
-*   **时序逻辑与有限状态机 (FSM):**
-    *   `fsm.circ` & `Mod5.circ`: 设计了**有限状态机**和**模5计数器**，这是时序逻辑和状态转移的典型实践。
-    *   `CRC.circ`: 一个**循环冗余校验 (CRC)** 码生成电路，让我深入理解了数据校验的硬件实现原理。
+## MIPS Assembly
 
-### 模块二：MIPS汇编语言编程 (使用 MARS)
+`MARS/` 保存了若干 MIPS 汇编练习，例如：
 
-在`MARS/`目录中，是我为MIPS架构编写的一系列汇编程序。通过这些实践，我深入理解了指令集体系结构(ISA)、内存布局、栈操作和函数调用约定。
+- 全排列
+- DFS 迷宫搜索
+- 二维卷积
+- 递归阶乘
+- 回文判断
 
-*   **算法实现:**
-    *   `migong.asm`: 使用**递归和栈**，实现了经典的**深度优先搜索 (DFS)** 算法来寻找迷宫路径。
-    *   `juanji.asm`: 实现了二维矩阵的**卷积**运算。
-    *   `fullarray.asm`: 实现了对N个元素进行**全排列**的算法。
-*   **基础程序:**
-    *   `jiecheng.asm` / `huiwen.asm`: 阶乘（递归实现）和回文判断等经典小程序。
+这一阶段主要用于熟悉寄存器、内存访问、分支跳转、过程调用和栈。
 
-### 模块三 (核心)：MIPS CPU设计 (使用 Verilog)
+## Single-Cycle CPU
 
-在`ppcpu/`目录中，是我使用**Verilog HDL**，从零开始设计和实现的MIPS处理器。这个过程经历了一次重要的迭代升级。
+`single_cpu/` 是单周期 MIPS CPU 实现，主要模块包括：
 
-#### **第一阶段：单周期MIPS CPU (`single_cpu/`)**
+```text
+IFU
+Controller
+GRF
+ALU
+DM
+Ext
+Trans
+mips
+```
 
-这是我实现的第一个处理器。它虽然简单，但完整地包含了CPU的五大核心功能部件：
-*   **IFU (取指单元):** 包含PC计数器和指令存储器(IM)。
-*   **Controller (控制器):** 核心的译码单元，根据指令的`opcode`和`func`字段生成所有控制信号。
-*   **GRF (通用寄存器堆):** 实现了32个32位寄存器的读写操作。
-*   **ALU (算术逻辑单元):** 支持`add`, `sub`, `or`等多种运算。
-*   **DM (数据存储器):** 模拟内存的读写。
+该版本把取指、译码、执行、访存和写回放在一个时钟周期内完成，是后续流水线实现的基础。
 
-整个设计以`mips.v`为顶层模块，将所有部件连接起来，形成了一个可以正确执行MIPS指令的单周期处理器。
+## Five-Stage Pipeline CPU
 
-#### **第二阶段 ：支持异常处理的五级流水线MIPS CPU (`ppcpu/`)**
+最终实现位于 `ppcpu/`，采用五级流水线：
 
-在单周期CPU的基础上，我进一步挑战了性能更高、但也更复杂的**五级流水线 (Pipeline) CPU**，并为其增加了异常处理和外设支持。
+```text
+IF → ID → EX → MEM → WB
+```
 
-*   **流水线设计:**
-    *   我设计了`IF`, `ID`, `EX`, `MEM`, `WB`五个阶段。
-    *   并创建了`IF_ID`, `ID_EX`, `IE_IM` (EX/MEM), `IM_IW` (MEM/WB) 四个核心的**流水线寄存器**，用于在各个阶段之间传递数据和控制信号。
+阶段之间使用：
 
-*   **冒险 (Hazard) 处理 (核心):**
-    *   为了解决流水线中的数据冲突，我专门设计了一个`Hazard_Controller.v` (冲突控制器) 模块。
-    *   **数据冒险:** 实现了**数据前推 (Data Forwarding)** 逻辑，通过`ForwardA`和`ForwardB`等多路选择器，将EX或MEM阶段的结果直接“前推”给ID阶段，避免不必要的暂停。
-    *   **加载-使用冒险:** 实现了**流水线暂停 (Stall)** 或“气泡” (Bubble) 插入机制。当检测到`lw`指令后面紧跟着使用该数据的指令时，`Hazard_Controller`会暂停IF和ID阶段，并清空EX阶段的控制信号。
+```text
+IF_ID
+ID_EX
+IE_IM
+IM_IW
+```
 
-*   **异常与中断处理 (高级):**
-    *   我设计并实现了`CP0`协处理器 (`cp0.v`)，用于处理**异常(Exception)**和**中断(Interrupt)**。
-    *   能够处理**算术溢出、地址越界、系统调用(syscall)、非法指令**等多种异常，并能够响应外部中断信号(`HWInt`)。
-    *   实现了`EPC`和`Cause`等关键寄存器，以及`eret`指令，确保了在异常发生后，CPU能够保存现场、跳转到异常处理程序，并在处理结束后正确返回。
+等流水寄存器传递数据与控制信息。
 
-*   **外设与总线桥 (`Bridge.v`):**
-    *   我设计了一个`Bridge`模块，作为连接CPU核心与外部设备的总线桥。
-    *   实现了**内存映射I/O (Memory-Mapped I/O)**，将定时器(`TC.v`)等外设的寄存器地址映射到特定的内存地址空间，使得CPU可以用`lw`/`sw`指令来访问和控制外设。
+### 数据冒险与暂停
 
----
+冲突控制逻辑位于：
 
-## 4. 总结
+```text
+ppcpu/Hazard_Cotroller.v
+```
 
-这个系列的上机实践，是我计算机学习生涯中至关重要的一部分。它让我不再仅仅是一个软件的使用者，而是能够理解计算机系统“引擎盖下”工作原理的工程师。从用Logisim“画”出一个加法器，到用Verilog设计一个能够处理中断和数据冒险的流水线CPU，这个过程极大地锻炼了我的**逻辑抽象能力、系统设计能力和独立解决底层问题的能力**。
+> `Cotroller` 是当时源码中保留下来的拼写。
+
+该模块同时生成 forwarding 和 stall 控制信号。代码中使用 `T_use` / `T_new` 表示操作数需要时间和结果产生时间，并结合当前各级写回寄存器判断是否需要暂停。
+
+另外，乘除单元的 `Busy / Start` 也会参与 stall 判断。
+
+### 乘除与 HI / LO
+
+`ppcpu/mult.v` 统一处理乘除相关操作，并维护 HI / LO。
+
+当前实现中：
+
+- 乘法操作模拟 5 个周期；
+- 除法操作模拟 10 个周期；
+- 支持有符号 / 无符号乘除；
+- 支持 `mfhi`、`mflo`、`mthi`、`mtlo` 对应的数据路径。
+
+流水线会在乘除单元忙时暂停相关指令。
+
+### 异常与中断
+
+`ppcpu/cp0.v` 实现课程 CPU 中使用的 CP0 状态：
+
+- SR / Status
+- Cause
+- EPC
+- EXL
+- 外部中断屏蔽与请求
+- 延迟槽标记
+
+源码中显式处理的异常码包括：
+
+```text
+4   address error
+5   address error
+8   syscall
+10  reserved / illegal instruction
+12  arithmetic overflow
+```
+
+异常或中断发生后会记录 EPC / Cause 并置 EXL；`eret` 路径负责清除 EXL 并返回。
+
+### MMIO 与外设
+
+`ppcpu/Bridge.v` 负责地址译码，把 CPU 的访存请求分发到：
+
+- Data Memory
+- Timer 0
+- Timer 1
+- Interrupt Generator
+
+顶层 `ppcpu/mips.v` 将 CPU、Bridge 和两个 Timer 连接起来，并把 Timer / 外部 interrupt 汇总到硬件中断输入。
+
+## 主要源码
+
+如果只想快速阅读最终实现，可以按下面的顺序：
+
+```text
+ppcpu/mips.v
+    ↓
+ppcpu/CPU.v
+    ↓
+ppcpu/Controller.v
+    ↓
+ppcpu/Hazard_Cotroller.v
+    ↓
+ppcpu/IF_ID.v
+ppcpu/ID_EX.v
+ppcpu/IE_IM.v
+ppcpu/IM_IW.v
+    ↓
+ppcpu/cp0.v
+ppcpu/Bridge.v
+ppcpu/mult.v
+```
+
+各模块旁边保留了对应的 `*_tb.v` testbench。
+
+## 工具
+
+课程期间主要使用：
+
+- Logisim
+- MARS
+- Verilog HDL
+- Xilinx ISE / ISim
+
+`single_cpu/*.xise` 和 `ppcpu/*.xise` 保留了当时的 ISE 工程配置，部分 `.wcfg` 文件用于波形观察。
+
+## 仓库整理
+
+最初上传时直接把整个课程目录提交到了 GitHub，因此包含大量 ISE / ISim 自动生成的二进制、波形和综合中间文件。
+
+当前 `main` 分支会保留：
+
+- Logisim 电路；
+- MIPS 汇编；
+- Verilog 源码与 testbench；
+- ISE 工程配置；
+- 有用的波形配置。
+
+自动生成的 `.exe`、`.wdb`、综合中间文件和仿真缓存已从 `main` 分支清理。
+
+原始完整目录仍保存在：
+
+```text
+archive-full-course-dump
+```
+
+需要时可以从这个分支回看原始工程环境。
+
